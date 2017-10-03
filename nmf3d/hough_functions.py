@@ -2,6 +2,10 @@
 Hough vector functions as described in Swarztrauber and Kasahara (1985)
 
 References:
+  A. Kasahara (1984). The Linear Response of a Stratified Global Atmosphere to
+  Tropical Thermal Forcing, J. Atmos. Sci., 41(14). 2217--2237.
+  doi: 10.1175/1520-0469(1984)041<2217:TLROAS>2.0.CO;2
+
   P. N. Swarztrauber and A. Kasahara (1985). The vector harmonic analysis of
   Laplace's tidal equations, SIAM J. Sci. Stat. Comput, 6(2), 464-491.
   doi: 10.1137/0906033

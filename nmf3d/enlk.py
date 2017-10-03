@@ -126,6 +126,12 @@ def project(vfile,hfile,data,**kargs):
 
   save  = kargs.get('save',True)   # create file
 
+  # check number of hfiles:
+  try:
+    hfile,hfile_B=hfile
+  except:
+    pass
+
   print (' - loading parameters from Hough functions file:\n    %s'%hfile)
   # loading dimensions:
   nc=netCDF4.Dataset(hfile)
@@ -139,8 +145,16 @@ def project(vfile,hfile,data,**kargs):
 
   print (' - loading vertical structure functions:\n    %s'%vfile)
   nc=netCDF4.Dataset(vfile)
-  hk=nc.variables['hk'][:nk]
-  print(' WHAT if ws0??? ---> hk[1:nk]??')
+  ws0=eval(nc.ws0)
+
+  if ws0:
+    nk+=1
+    hk=nc.variables['hk'][:nk]
+    hk[0]=1.
+  else:
+    hk=nc.variables['hk'][:nk]
+
+#####################  print(' WHAT if ws0??? ---> hk[1:nk]??')
   Gn=nc.variables['Gn'][:nk]
   GL=Gn.shape[1]
   nc.close()
@@ -172,20 +186,53 @@ def project(vfile,hfile,data,**kargs):
   # Hough transforms -------------------------------------------------
   print (' - loading Hough vector functions')
   nc=netCDF4.Dataset(hfile)
-  HOUGH_UVZ=nc.variables['HOUGH_UVZ_real'][:]+1j*nc.variables['HOUGH_UVZ_imag'][:]
+  HOUGH_UVZ_b=nc.variables['HOUGH_UVZ_real'][:]+1j*nc.variables['HOUGH_UVZ_imag'][:]
   # Hough vector functions for zonal wavenumber n = 0 :
-  HOUGH_0_UVZ=nc.variables['HOUGH_0_UVZ_real'][:]+1j*nc.variables['HOUGH_0_UVZ_imag'][:]
+  HOUGH_0_UVZ_b=nc.variables['HOUGH_0_UVZ_real'][:]+1j*nc.variables['HOUGH_0_UVZ_imag'][:]
   nc.close()
 
+  if ws0: # read barotropic file:
+    ncB=netCDF4.Dataset(hfile_B)
+    HOUGH_UVZ_B=ncB.variables['HOUGH_UVZ_real'][:]+1j*ncB.variables['HOUGH_UVZ_imag'][:]
+    # Hough vector functions for zonal wavenumber n = 0 :
+##############    HOUGH_0_UVZ_B=ncB.variables['HOUGH_0_UVZ_real'][:]+1j*ncB.variables['HOUGH_0_UVZ_imag'][:]
+    HOUGH_0_UVZ_B=ncB.variables['HOUGH_0_UVZ'][:] ###################+1j*ncB.variables['HOUGH_0_UVZ_imag'][:]
+
+    # concatenate:
+    shape  = list(HOUGH_UVZ_b.shape)
+    shape0 = list(HOUGH_0_UVZ_b.shape)
+    shape[3]  = nk
+    shape0[2] = nk
+
+    HOUGH_UVZ=np.zeros(shape,cType)
+    HOUGH_0_UVZ=np.zeros(shape0,cType)
+
+    HOUGH_UVZ[:,:,:,0,:]=HOUGH_UVZ_B
+    HOUGH_0_UVZ[:,:,0,:]=HOUGH_0_UVZ_B
+
+    HOUGH_UVZ[:,:,:,1:,:]=HOUGH_UVZ_b
+    HOUGH_0_UVZ[:,:,1:,:]=HOUGH_0_UVZ_b
+
+  else:
+    HOUGH_UVZ=HOUGH_UVZ_b
+    HOUGH_0_UVZ=HOUGH_0_UVZ_b
+
   Lat=data['u']['lat']
-  Dl  = (Lat[1]-Lat[0])*np.pi/180;     # Latitude spacing (radians)
-  print('What if not linear ??????')
+  # check if linear or gaussian
+  if np.unique(np.diff(Lat)).size==1: # linear
+    Dl  = (Lat[1]-Lat[0])*np.pi/180 # Latitude spacing (radians)
+    latType='linear'
+  else: # gaussian
+    gw=np.polynomial.legendre.leggauss(Lat.size)[1]
+    latType='gaussian'
+
+############  print('What if not linear ??????')
   nTimes=data['u']['v'].shape[0]
 
   THETA     = Lat*np.pi/180
   cosTheta  = np.cos(THETA)
   w_nlk = np.zeros((nk,nN,nL,nTimes), dtype=cType)
-  aux1  = np.zeros(Lat.size-1,  dtype=cType)
+###  aux1  = np.zeros(Lat.size-1,  dtype=cType)
   for k in range(nk): # vertical index
     for n in range(nN): # wavenumber index
       for l in range(nL): # meridional index
@@ -193,9 +240,15 @@ def project(vfile,hfile,data,**kargs):
           Aux = W_nk[:,k,:,n,t]*np.conjugate(HOUGH_UVZ[:,n,l,k,:])*cosTheta   # Aux(3,Lat)
           y1=Aux.sum(0) # Integrand -> y1(Lat)
 
-          # Computes latitude integral of the Integrand using trapezoidal method
-          for la in range(Lat.size-1):
-            aux1[la] = (y1[la]+y1[la+1]) * Dl/2.;
+          if latType=='linear':
+            # Computes latitude integral of the Integrand using trapezoidal method
+###            for la in range(Lat.size-1):
+###              aux1[la] = (y1[la]+y1[la+1]) * Dl/2.;
+
+            aux1=(y1[:-1]+y1[1:])*Dl/2
+
+          elif latType=='gaussian':
+            aux1=gw*y1
 
           w_nlk[k,n,l,t] = aux1.sum()
 
@@ -258,15 +311,15 @@ def save_nc(fname,data,attrs):
   # variables:
   dim='number_equivalent_heights','max_zonal_wave_number','total_meridional_modes','time'
   v=nc.createVariable('w_nlk_real',dType,dim)
-  v.long_name='TODO...'
+  v.long_name='Expansion coefficients (real)'
   v=nc.createVariable('w_nlk_imag',dType,dim)
-  v.long_name='TODO...'
+  v.long_name='Expansion coefficients (imag)'
 
   dim='number_equivalent_heights','total_meridional_modes','time'
   v=nc.createVariable('w_0lk_real',dType,dim)
-  v.long_name='TODO...'
+  v.long_name='Zonal expansion coefficients (real)'
   v=nc.createVariable('w_0lk_imag',dType,dim)
-  v.long_name='TODO...'
+  v.long_name='Zonal expansion coefficients (imag)'
 
   # global attributes:
   import datetime
