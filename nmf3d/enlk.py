@@ -185,6 +185,7 @@ def project(vfile,hfile,data,**kargs):
 
   # Hough transforms -------------------------------------------------
   print (' - loading Hough vector functions')
+  if ws0: print ('   (%s)'%hfile)
   nc=netCDF4.Dataset(hfile)
   HOUGH_UVZ_b=nc.variables['HOUGH_UVZ_real'][:]+1j*nc.variables['HOUGH_UVZ_imag'][:]
   # Hough vector functions for zonal wavenumber n = 0 :
@@ -192,6 +193,7 @@ def project(vfile,hfile,data,**kargs):
   nc.close()
 
   if ws0: # read barotropic file:
+    print ('   (%s)'%hfile_B)
     ncB=netCDF4.Dataset(hfile_B)
     HOUGH_UVZ_B=ncB.variables['HOUGH_UVZ_real'][:]+1j*ncB.variables['HOUGH_UVZ_imag'][:]
     # Hough vector functions for zonal wavenumber n = 0 :
@@ -229,6 +231,7 @@ def project(vfile,hfile,data,**kargs):
 ############  print('What if not linear ??????')
   nTimes=data['u']['v'].shape[0]
 
+  print (' - computing')
   THETA     = Lat*np.pi/180
   cosTheta  = np.cos(THETA)
   w_nlk = np.zeros((nk,nN,nL,nTimes), dtype=cType)
