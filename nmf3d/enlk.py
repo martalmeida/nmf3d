@@ -133,31 +133,58 @@ def project(vfile,hfile,data,**kargs):
     pass
 
   print (' - loading parameters from Hough functions file:\n    %s'%hfile)
-  # loading dimensions:
-  nc=netCDF4.Dataset(hfile)
-  LG=nc.dimensions['quarter_number_gravitical_modes'].size*4 # number of gravity meridional modes (should be even)
-  LR=nc.dimensions['half_number_rossby_modes'].size*2        # number of Rossby meridional modes (should be even)
-  nN=nc.dimensions['max_zonal_wave_number'].size             # number of zonal wavenumbers
-  nL= LG+LR                                                  # number of total meridional modes
-  #nk=nc.nk # may differ from number_equivalent_heights if ws0
-  nk=nc.dimensions['number_equivalent_heights'].size
-  nc.close()
+  if hfile.endswith('.npz'):
+    ohfile=np.load(hfile)
+
+    max_zonal_wave_number,quarter_number_gravitical_modes, number_equivalent_heights=ohfile['WEST_G_sy'].shape
+    half_number_rossby_modes=ohfile['WEST_R_sy'].shape[1]
+
+    LG=quarter_number_gravitical_modes*4
+    LR=half_number_rossby_modes*2
+    nN=max_zonal_wave_number
+    nk=number_equivalent_heights
+
+  else: # netcdf
+    # loading dimensions:
+    nc=netCDF4.Dataset(hfile)
+    LG=nc.dimensions['quarter_number_gravitical_modes'].size*4 # number of gravity meridional modes (should be even)
+    LR=nc.dimensions['half_number_rossby_modes'].size*2        # number of Rossby meridional modes (should be even)
+    nN=nc.dimensions['max_zonal_wave_number'].size             # number of zonal wavenumbers
+    #nk=nc.nk # may differ from number_equivalent_heights if ws0
+    nk=nc.dimensions['number_equivalent_heights'].size
+    nc.close()
+
+  nL= LG+LR                                                    # number of total meridional modes
 
   print (' - loading vertical structure functions:\n    %s'%vfile)
-  nc=netCDF4.Dataset(vfile)
-  ws0=eval(nc.ws0)
+  if vfile.endswith('.npz'):
+    ovfile=np.load(vfile)
+    ws0=eval(ovfile['ws0'][()])
 
-  if ws0:
-    nk+=1
-    hk=nc.variables['hk'][:nk]
-    hk[0]=1.
-  else:
-    hk=nc.variables['hk'][:nk]
+    if ws0:
+      nk+=1
+      hk=ovfile['hk'][:nk]
+      hk[0]=1.
+    else:
+      hk=ovfile['hk'][:nk]
 
-#####################  print(' WHAT if ws0??? ---> hk[1:nk]??')
-  Gn=nc.variables['Gn'][:nk]
+    Gn=ovfile['Gn'][:nk]
+
+  else: # netcdf
+    nc=netCDF4.Dataset(vfile)
+    ws0=eval(nc.ws0)
+
+    if ws0:
+      nk+=1
+      hk=nc.variables['hk'][:nk]
+      hk[0]=1.
+    else:
+      hk=nc.variables['hk'][:nk]
+
+    Gn=nc.variables['Gn'][:nk]
+    nc.close()
+
   GL=Gn.shape[1]
-  nc.close()
 
   # Gaussian levels (i.e. points (Gp)) and Gaussian weights (Gw)
   Gp,Gw = scipy.special.orthogonal.p_roots(GL)
@@ -186,19 +213,27 @@ def project(vfile,hfile,data,**kargs):
   # Hough transforms -------------------------------------------------
   print (' - loading Hough vector functions')
   if ws0: print ('   (%s)'%hfile)
-  nc=netCDF4.Dataset(hfile)
-  HOUGH_UVZ_b=nc.variables['HOUGH_UVZ_real'][:]+1j*nc.variables['HOUGH_UVZ_imag'][:]
-  # Hough vector functions for zonal wavenumber n = 0 :
-  HOUGH_0_UVZ_b=nc.variables['HOUGH_0_UVZ_real'][:]+1j*nc.variables['HOUGH_0_UVZ_imag'][:]
-  nc.close()
+  if hfile.endswith('.npz'):
+    HOUGH_UVZ_b   = ohfile['HOUGH_UVZ']
+    HOUGH_0_UVZ_b = ohfile['HOUGH_0_UVZ']
+  else:
+    nc=netCDF4.Dataset(hfile)
+    HOUGH_UVZ_b=nc.variables['HOUGH_UVZ_real'][:]+1j*nc.variables['HOUGH_UVZ_imag'][:]
+    # Hough vector functions for zonal wavenumber n = 0 :
+    HOUGH_0_UVZ_b=nc.variables['HOUGH_0_UVZ_real'][:]+1j*nc.variables['HOUGH_0_UVZ_imag'][:]
+    nc.close()
 
   if ws0: # read barotropic file:
     print ('   (%s)'%hfile_B)
-    ncB=netCDF4.Dataset(hfile_B)
-    HOUGH_UVZ_B=ncB.variables['HOUGH_UVZ_real'][:]+1j*ncB.variables['HOUGH_UVZ_imag'][:]
-    # Hough vector functions for zonal wavenumber n = 0 :
-##############    HOUGH_0_UVZ_B=ncB.variables['HOUGH_0_UVZ_real'][:]+1j*ncB.variables['HOUGH_0_UVZ_imag'][:]
-    HOUGH_0_UVZ_B=ncB.variables['HOUGH_0_UVZ'][:] ###################+1j*ncB.variables['HOUGH_0_UVZ_imag'][:]
+    if  hfile_B.endswith('.npz'):
+      ohfile_B=np.load(hfile_B)
+      HOUGH_UVZ_B   = ohfile_B['HOUGH_UVZ']
+      HOUGH_0_UVZ_B = ohfile_B['HOUGH_0_UVZ']
+    else:
+      ncB=netCDF4.Dataset(hfile_B)
+      HOUGH_UVZ_B=ncB.variables['HOUGH_UVZ_real'][:]+1j*ncB.variables['HOUGH_UVZ_imag'][:]
+      # Hough vector functions for zonal wavenumber n = 0 :
+      HOUGH_0_UVZ_B=ncB.variables['HOUGH_0_UVZ'][:]
 
     # concatenate:
     shape  = list(HOUGH_UVZ_b.shape)
