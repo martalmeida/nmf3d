@@ -4,9 +4,9 @@
 ### Tridimensional Normal Mode Functions
 
 ##### About the software:
- - NMF3d includes a Python and a Matlab version
- - works with both python 2 and 3
- - for the python version, Numpy and Scipy are required; netCDF4 is recommended
+ - NMF3D includes a Python and a Matlab version
+ - works with both Python 2 and 3
+ - for the Python version, Numpy and Scipy are required; netCDF4 is recommended
 
 ##### References:
  - A. Kasahara (1984). The Linear Response of a Stratified Global Atmosphere to
@@ -29,7 +29,7 @@
 ### 1. Vertical space/time mean profile of temperature from a global dataset
 *nmf3d.calcs.profile*
 
-The mean profile of temperature is needed for the NMF3d. Folder data (nmf3d.datafolder)
+The mean profile of temperature is needed for the NMF3D. Folder data (nmf3d.datafolder)
 contains some ERA-INTERIM temperature files that can be used. These are very low space/time
 resolution files just for testing.
 
@@ -228,7 +228,7 @@ Part I: The frequencies and the Hough functions are computed for zonal wave numb
 Part II: The frequencies and the Hough functions are computed for zonal wave numbers m > 0
 
 Inputs:
- - equivalent eights
+ - equivalent heights
  - M, maximum zonal wave number used in the expansion: m=0,1,...,M
  - nLR, total number of (west) Rossby modes used in the expansion (should be even)
  - nLG , half the number of Gravity modes used in the expansion (should be even)
@@ -591,11 +591,11 @@ w_nlk,w_0lk,fsaveF=nmf3d.wnlk.spectrum(vfile,hfile,data,label='out_ws0_True')
 TODO
 
 ### APPENDIX
-##### Matlab® version (warning, matlab is not free and in our opinion has no advantage over python)
+##### Matlab version
 
-The same results of the previous python tutorial can be obtained with the python version of code like. In terms of output filenames, the matlab version also saves netcdf files, but saves mat instead of npz.
+The same results of the previous Python tutorial can be obtained with the Python version of code like. In terms of output filenames, the Matlab version also saves netcdf files, but saves/loads mat instead of npz.
 
-<div style="color: #333333; white-space: pre; font-family: monospace; font-size: 12px">
+```
 % adjust paths: ------------------------------------------------------
 d='SOME_PATH/nmf3d/'
 addpath([d 'nmf3d_mat']);
@@ -641,4 +641,4 @@ hfile=hfile_bB;
 vfile=vfileF;
 hfile=hfile_b;
 [w_nlk,w_0lk,fsave_w]=wnlk(vfile,hfile,data,'label','out_ws0_False');
-</div>
+```
