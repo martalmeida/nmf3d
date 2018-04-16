@@ -2,6 +2,7 @@ import numpy as np
 from numpy.lib import scimath
 import scipy as sp
 from . import constants as const
+from . import calcs
 
 dType='d'
 cType=np.complex128
@@ -19,11 +20,10 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
 
   print('- HVF baroclinic -')
 
-  L = nLR + 2*nLG  # Total number of meridional modes used in the expansion (should be even)
+  L = nLR + 2*nLG # Total number of meridional modes used in the expansion (should be even)
 
   # The equivalent heights (the first nk)
   NEH=hk.size
-
 
   # Dimensionless constant (gamma) computed from (2.8) of Swarztrauber and Kasahara (1985):
   # gamma=sqrt(g*hk)/(2*Er*Om), where hk are the equivalent heights obtained as the
@@ -61,7 +61,7 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   # p_n, Eq. (4.2) in Swarztrauber and Kasahara (1985)
   p_n = np.zeros(2*N,dtype=dType)
   for k in range(2*N):
-    p_n[k] = np.sqrt((k*(k+2.0))/((2*k+1)*(2*k+3)))
+    p_n[k] = np.sqrt((k*(k+2.))/((2*k+1.)*(2*k+3.)))
 
   # r_n, Eq. (3.26) in Swarztrauber and Kasahara (1985)
   r_n = np.zeros((2*N,NEH),dtype=dType)
@@ -105,34 +105,32 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   # Using np.real(d_n[0,:]*d_n[0,:]) avoids python ComplexWarning ("Casting complex
   # values to real discards the imaginary part")
   E_md[0,:] = np.real(d_n[0,:]*d_n[0,:])
+  # Main diagonal elements for Matrix E.
   for k in range(1,N+1):
-    # Main diagonal elements for Matrix E.
     E_md[k,:] = n_n1[2*k-2] + e_n[2*k-2,:] * e_n[2*k-2,:] + np.real(d_n[2*k,:]*d_n[2*k,:])
 
   # Creating the tridiagonal matrix E and calculating it's eigenvalues/eigenvectors
   # Creating matrix diag(i,1,...,1) for diagonal similarity transform of matrix E
-  AUX_E      = np.eye((N+1),dtype=cType)
-  AUX_E[0,0] = scimath.sqrt(-1)
+  aux_e      = np.eye((N+1),dtype=cType)
+  aux_e[0,0] = scimath.sqrt(-1)
+  U_E    = np.zeros((N+1,N+1,NEH),dtype=cType)
+  S_Eaux = np.zeros((N+1,NEH)    ,dtype=dType)
 
-  E       = np.zeros((N+1,N+1,NEH),dtype=cType)
-  U_E     = np.zeros((N+1,N+1,NEH),dtype=cType)
-  U_Eaux  = np.zeros((N+1,N+1,NEH),dtype=dType)
-  AUXe    = np.zeros((N+1,N+1,NEH),dtype=dType)
-  Sa_E    = np.zeros((N+1,NEH)    ,dtype=dType)
-  S_Eaux  = np.zeros((N+1,NEH)    ,dtype=dType)
-  IE2sort = np.zeros((N+1,NEH),'i')
+  def mdot(*args):
+    from functools import reduce
+    return reduce(np.dot, args)
 
   for gi in range(NEH):
-     # Tridiagonal matrix E
-     E[:,:,gi] = np.diag(E_dd[:,gi],k=-1) + np.diag(E_md[:,gi]) + np.diag(E_dd[:,gi],k=1)
+    # Tridiagonal matrix E
+    E = np.diag(E_dd[:,gi],k=-1) + np.diag(E_md[:,gi]) + np.diag(E_dd[:,gi],k=1)
 
-     # The eigenvalues/eigenvectors of E [Eq. (4.22) in Swarztrauber and Kasahara (1985)]
-     AUXe[:,:,gi],U_Eaux[:,:,gi] = np.linalg.eig(np.real(np.dot(np.dot(np.conjugate(AUX_E).T, np.squeeze(E[:,:,gi])), AUX_E)))
-     U_E[:,:,gi]                 = np.dot(AUX_E,np.squeeze(U_Eaux[:,:,gi]))   # Multliplying eigenvectors by diag(i,1,...,1)
-     S_Eaux[:,gi]                = np.diag(np.squeeze(AUXe[:,:,gi]))          # The eigenvalues unsorted
-     IE2sort[:,gi]               = np.argsort(S_Eaux[:,gi],axis=0)            # Returns the indices that would sort the eigenvalues.
-     S_Eaux[:,gi]                = S_Eaux[IE2sort[:,gi],gi]                   # Sorting the eigenvalues.
-     U_E[:,:,gi]                 = U_E[:,IE2sort[:,gi],gi]                    # Sorting the corresponding eigenvectors.
+    eig_val,eig_vec=np.linalg.eig(mdot(aux_e.conj().T,E,aux_e).real)
+    isort=np.argsort(eig_val)
+    eig_val=eig_val[isort]
+    eig_vec=eig_vec[:,isort]
+
+    U_E[:,:,gi]  = np.dot(aux_e,eig_vec); # Multliplies sorted eigenvectors by diag(i,1,...,1)
+    S_Eaux[:,gi] = eig_val;
 
 
   # Frequencies Sigma_a, Eqs. (4.18) in Swarztrauber and Kasahara (1985)
@@ -145,35 +143,34 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   F_dd = np.zeros((N-1,NEH),dtype=dType)
   F_md = np.zeros((N,NEH),dtype=dType)
 
+  # Upper (and lower) diagonal elements for Matrix F
   for k in range(1,N):
-    # Upper (and lower) diagonal elements for Matrix F
     F_dd[k-1,:] = np.real(d_n[2*k+1,:]) * e_n[2*k+1,:]
 
+  # Main diagonal elements for Matrix F
   for k in range(N):
-    # Main diagonal elements for Matrix F.
     F_md[k,:] =  n_n1[2*k+1] + e_n[2*k+1,:] * e_n[2*k+1,:] + np.real(d_n[2*k+3,:] * d_n[2*k+3,:])
 
   # Matrix F, eigenvalues/eigenvectors
-  F       = np.zeros((N,N,NEH),dtype=dType)
   U_F     = np.zeros((N,N,NEH),dtype=dType)
-  AUXf    = np.zeros((N,N,NEH),dtype=dType)
-  Sa_F    = np.zeros((N,NEH)  ,dtype=dType)
   S_Faux  = np.zeros((N,NEH)  ,dtype=dType)
-  IF2sort = np.zeros((N,NEH),'i')
 
   for gi in range(NEH):
     # Tridiagonal matrix F
-    F[:,:,gi] = np.diag(F_dd[:,gi],k=-1) + np.diag(F_md[:,gi]) + np.diag(F_dd[:,gi],k=1)
+    F = np.diag(F_dd[:,gi],k=-1) + np.diag(F_md[:,gi]) + np.diag(F_dd[:,gi],k=1)
+
     # The eigenvalues/eigenvectors of F [Eq. (4.25) in Swarztrauber and Kasahara (1985)]
-    AUXf[:,:,gi],U_F[:,:,gi] = np.linalg.eigh(np.squeeze(F[:,:,gi]))
-    S_Faux[:,gi]             = np.diag(np.squeeze(AUXf[:,:,gi]));      # the eigenvalues unsorted
-    IF2sort[:,gi]            = np.argsort(abs(S_Faux[:,gi]),axis=0);   # Returns the indices that would sort the eigenvalues.
-    S_Faux[:,gi]             = S_Faux[IF2sort[:,gi],gi];               # Sorting the eigenvalues.
-    U_F[:,:,gi]              = U_F[:,IF2sort[:,gi],gi];                # Sorting the corresponding eigenvectors.
+    eig_val,eig_vec=np.linalg.eig(F)
+    isort=np.argsort(eig_val)
+    eig_val=eig_val[isort]
+    eig_vec=eig_vec[:,isort]
+
+    U_F[:,:,gi]  = eig_vec;
+    S_Faux[:,gi] = eig_val;
+
 
   # Frequencies Sigma_a, Eqs. (4.18) in Swarztrauber and Kasahara (1985)
   Sa_F = -1.0 / S_Faux
-
 
   # Selecting the frequencies and the coefficients for the vector harmonic expansion
   # The eigenvalues are classified as:
@@ -190,10 +187,10 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   # coefficients Bn and Cn are obtained from An using eqs. (4.4) and (4.5)
 
   # Arrays for the frequencies (eigenvalues)
-  WEST_G_0_sy  = np.zeros((nLG//2,NEH),dtype='d');
-  WEST_G_0_asy = np.zeros((nLG//2,NEH),dtype='d');
-  EAST_G_0_sy  = np.zeros((nLG//2,NEH),dtype='d');
-  EAST_G_0_asy = np.zeros((nLG//2,NEH),dtype='d');
+############  WEST_G_0_sy  = np.zeros((nLG//2,NEH),dtype='d');
+##########  WEST_G_0_asy = np.zeros((nLG//2,NEH),dtype='d');
+#########  EAST_G_0_sy  = np.zeros((nLG//2,NEH),dtype='d');
+#########  EAST_G_0_asy = np.zeros((nLG//2,NEH),dtype='d');
 
   # Arrays for the coefficients (eigenvectors)
   # The coefficients are stored in columns as:
@@ -204,8 +201,8 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   ABC_EG_0_sy  = np.zeros((maxN,nLG//2,NEH),dtype=dType)
   ABC_EG_0_asy = np.zeros((maxN,nLG//2,NEH),dtype=dType)
 
-  An_G_0_sy    = np.zeros((N,nLG//2,NEH),dtype=dType)
-  An_G_0_asy   = np.zeros((N,nLG//2,NEH),dtype=dType)
+#########  An_G_0_sy    = np.zeros((N,nLG//2,NEH),dtype=dType)
+#########  An_G_0_asy   = np.zeros((N,nLG//2,NEH),dtype=dType)
   Bn_G_0_sy    = np.zeros((N,nLG//2,NEH),dtype=dType)
   Bn_G_0_asy   = np.zeros((N,nLG//2,NEH),dtype=dType)
   Cn_G_0_sy    = np.zeros((N,nLG//2,NEH),dtype=dType)
@@ -230,35 +227,34 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     r_n_aux[:,s,:] = r_n;
 
   for n in range(N):
-    for l in range(1,nLG//2):
-      # This loop starts at l=1 to avoid division by zero warning (i.e. EAST_G_0_sy[l=0,:]=0).
-      # Variables ABC_WG_0_sy and ABC_EG_0_sy, which dependend on Cn_G_0_sy, are changed below 
-      # (cf. p.475 of Swarztrauber and Kasahara (1985)) because eastward gravity mode of lowest
-      # order (l=0) is eigenvector of matrix E.
-
-      # symmetric subsystem -> (C0, C2, C4, ... , C2N-2) <- from matrix C
-      Cn_G_0_sy[n,l,:] = r_n_aux[2*n,l,:].T * An_G_0_sy[n,l,:].T / EAST_G_0_sy[l,:]
-
-  for n in range(N):
     for l in range(nLG//2):
+
+      if l>0:
+        # This loop starts at l=1 to avoid division by zero warning (i.e. EAST_G_0_sy[l=0,:]=0).
+        # Variables ABC_WG_0_sy and ABC_EG_0_sy, which dependend on Cn_G_0_sy, are changed below
+        # (cf. p.475 of Swarztrauber and Kasahara (1985)) because eastward gravity mode of lowest
+        # order (l=0) is eigenvector of matrix E.
+
+        # symmetric subsystem -> (C0, C2, C4, ... , C2N-2) <- from matrix C
+        Cn_G_0_sy[n,l,:] = r_n_aux[2*n,l,:].T * An_G_0_sy[n,l,:].T / EAST_G_0_sy[l,:]
+
       # antisymmetric subsystem -> (C1, C3, C5, ... , C2N-1) <- from matrix D
       Cn_G_0_asy[n,l,:] = r_n_aux[2*n+1,l,:].T * An_G_0_asy[n,l,:].T / EAST_G_0_asy[l,:]
 
+
   # Bn => Eq. (4.4) in Swarztrauber and Kasahara (1985)
   # Last Bn for the symmetric subsystem must be computed from eq. (4.3)
-  for n in np.arange(0,N-1):
-    for l in np.arange(1,nLG//2):
-      # This loop starts at l=1. See above.
-
+  for n in range(N-1):
+    for l in range(1,nLG//2): # starts at 1 to avoid division by zero warning, see above
       # symmetric subsystem -> (B1, B3, B5, ... ) <- from matrix C
       Bn_G_0_sy[n,l,:] = (p_n[2*n]*An_G_0_sy[n,l,:].T+p_n[2*n+1]*An_G_0_sy[n+1,l,:].T) / EAST_G_0_sy[l,:]
 
-  # Last Bn for the symmetric subsystem computed from eq. (4.3)
+  # Last Bn for the symmetric subsystem computed from eq 4.3
   for l in range(nLG//2):
     Bn_G_0_sy[N-1,l,:] = (EAST_G_0_sy[l,:]*An_G_0_sy[N-1,l,:].T-r_n[2*N-2,:]*Cn_G_0_sy[N-1,l,:].T-p_n[2*N-3]*Bn_G_0_sy[N-1,l,:].T) / p_n[2*N-2]
 
 
-  Bn_G_0_asy[0,:,:] = 0; # B0 = 0 from (4.4)
+  Bn_G_0_asy[0] = 0 # B0 = 0 from eq 4.4
   for n in range(1,N):
     for l in range(nLG//2):
       # antisymmetric subsystem -> (B0, B2, B4, ... ) <- from matrix D
@@ -298,8 +294,8 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   # The first is obtained by noting that U=(1,0,0,...)^T is an eigenvector of C,
   # which corresponds to eigenvalue sigma^2=0. Therefore the first westward gravity
   # mode is identified with A0=1 and all other coeficients are zero.
-  ABC_WG_0_sy[:,0,:] = 0  # all other coeficients are zero.
-  ABC_WG_0_sy[1,0,:] = 1  # A0=1 (cf. p.475 of Swarztrauber and Kasahara (1985)).
+  ABC_WG_0_sy[:,0,:] = 0 # all other coeficients are zero.
+  ABC_WG_0_sy[1,0,:] = 1 # A0=1 (cf. p.475 of Swarztrauber and Kasahara (1985)).
 
 
   # Case 2 : Rossby(rotational) Modes
@@ -314,6 +310,7 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   WEST_R_0_sy  = Sa_E[:nLR//2]
   WEST_R_0_asy = Sa_F[:nLR//2]
 
+
   # Arrays for the coefficients (eigenvectors)
   # The coefficients are stored in columns as:
   # symmetric subsystem     --> (C0, A0, B1, C2, A2, B3, ...)
@@ -323,24 +320,26 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   auxBn_R_0_sy = np.zeros((N+1,nLR//2+1,NEH) ,dtype=dType)
   Bn_R_0_sy    = np.zeros((N+1,nLR//2+1,NEH) ,dtype=dType)
   Cn_R_0_sy    = np.zeros((N+1,nLR//2+1,NEH) ,dtype=dType)
-  Bn_til_0_sy  = np.zeros((N+1,nLR//2+1,NEH) ,dtype=cType)
+##  Bn_til_0_sy  = np.zeros((N+1,nLR//2+1,NEH) ,dtype=cType)
+  Bn_til_0_sy  = U_E[:,:nLR//2+1]  # symmetric subsystem --> [Bn_til[-1], Bn_til[1], Bn_til[3], ... ] <-- matrix E
 
   ABC_WR_0_asy  = np.zeros((maxN,nLR//2,NEH),dtype=dType)
   An_R_0_asy    = np.zeros((N,nLR//2,NEH)   ,dtype=dType)
   auxBn_R_0_asy = np.zeros((N,nLR//2,NEH)   ,dtype=dType)
   Bn_R_0_asy    = np.zeros((N,nLR//2,NEH)   ,dtype=dType)
   Cn_R_0_asy    = np.zeros((N,nLR//2,NEH)   ,dtype=dType)
-  Bn_til_0_asy  = np.zeros((N,nLR//2,NEH)   ,dtype=dType)
+##  Bn_til_0_asy  = np.zeros((N,nLR//2,NEH)   ,dtype=dType)
+  Bn_til_0_asy  = U_F[:,:nLR//2] # antisymmetric subsystem --> [ Bn_til[2], Bn_til[4], Bn_til[6], ... ] <-- matrix F
 
-  for la in range(nLR//2):
-    # The frequencies (eigenvalues)
-    WEST_R_0_sy[la,:]  = Sa_E[la,:]
-    WEST_R_0_asy[la,:] = Sa_F[la,:]
-    # The coefficients Bn_til [eigenvectors]
-    Bn_til_0_sy[:,la,:]  = U_E[:,la,:]   #     symmetric subsystem --> [Bn_til[-1], Bn_til[1], Bn_til[3], ... ] <-- matrix E
-    Bn_til_0_asy[:,la,:] = U_F[:,la,:]   # antisymmetric subsystem --> [ Bn_til[2], Bn_til[4], Bn_til[6], ... ] <-- matrix F
-
-  Bn_til_0_sy[:,nLR//2,:] = U_E[:,nLR//2,:]
+##  for la in range(nLR//2):
+##    # The frequencies (eigenvalues)
+##    WEST_R_0_sy[la,:]  = Sa_E[la,:]
+##    WEST_R_0_asy[la,:] = Sa_F[la,:]
+##    # The coefficients Bn_til [eigenvectors]
+##    Bn_til_0_sy[:,la,:]  = U_E[:,la,:]   #     symmetric subsystem --> [Bn_til[-1], Bn_til[1], Bn_til[3], ... ] <-- matrix E
+##    Bn_til_0_asy[:,la,:] = U_F[:,la,:]   # antisymmetric subsystem --> [ Bn_til[2], Bn_til[4], Bn_til[6], ... ] <-- matrix F
+##
+##  Bn_til_0_sy[:,nLR//2,:] = U_E[:,nLR//2,:]
 
 
   # Computation of Bn and Cn
@@ -357,69 +356,79 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     nn2 = nn2 + 1
 
   # symmetric subsystem --> (B-1, B1, B3, B5 ... ) <-- from matrix E (with N+1 elements)
-  for n in range(N+1):   # Element N+1 of Bn_til_0_sy is used to compute last element of Bn_R_0_sy
+  for n in range(N+1): # Element N+1 of Bn_til_0_sy is used to compute last element of Bn_R_0_sy
     # Eq. (4.18) in Swarztrauber and Kasahara (1985)
-    auxBn_R_0_sy[n,:,:] = np.real(aux_sy[n]*Bn_til_0_sy[n,:,:])
+    auxBn_R_0_sy[n] = np.real(aux_sy[n]*Bn_til_0_sy[n])
 
   # The Bn's to be stored are (B1, B3, B5 ... ), hence:
-  Bn_R_0_sy[0:N,:,:] = auxBn_R_0_sy[1:N+1,:,:]
+  Bn_R_0_sy[:N] = auxBn_R_0_sy[1:N+1]
 
 
   # symmetric subsystem --> (C0, C2, C4, ... ) <-- from matrix E (with N+1 elements)
-  for n in range(N):   # Only the first N elements will be used
+  for n in range(N): # Only the first N elements will be used
     for k in range(NEH):
       # Eq. (4.26) in Swarztrauber and Kasahara (1985)
       Cn_R_0_sy[n,:,k] = np.real(-d_n[2*n,k]*Bn_til_0_sy[n,:,k] - e_n[2*n,k]*Bn_til_0_sy[n+1,:,k])
 
 
-  for n in range(1,N):
-    for k in np.arange(0,NEH):
+##  for n in range(1,N):
+##    for k in range(NEH):
+##      # antisymmetric subsystem --> (B2, B4, B6, ... ) <-- from matrix F (with N elements)
+##      auxBn_R_0_asy[n,:,k] = aux_asy[n] * Bn_til_0_asy[n,:,k]
+##      Cn_R_0_asy[n,:,k]    = np.real(-d_n[2*n+1,k]*Bn_til_0_asy[n-1,:,k]-e_n[2*n+1,k]*Bn_til_0_asy[n,:,k])
+##
+##  n1 = 0
+##  for k in range(NEH):
+##    # antisymmetric subsystem --> (B2, B4, B6, ... ) <-- from matrix F (with N elements)
+##    auxBn_R_0_asy[n1,:,k] = aux_asy[n1]    * Bn_til_0_asy[n1,:,k]
+##    Cn_R_0_asy[n1,:,k]    = -e_n[2*n1+1,k] * Bn_til_0_asy[n1,:,k]
+##
+##  ## OR
+##  #for n in np.arange(0,N):
+##    #for k in np.arange(0,NEH):
+##      ## antisymmetric subsystem --> (B2, B4, B6, ... ) <-- from matrix F (with N elements)
+##      #auxBn_R_0_asy[n,:,k] = aux_asy[n]*Bn_til_0_asy[n,:,k];
+##      #if n==0:
+##        #Cn_R_0_asy[n,:,k]  = -e_n[2*n+1,k]*Bn_til_0_asy[n,:,k];
+##      #else:
+##        #Cn_R_0_asy[n,:,k]  = -d_n[2*n+1,k]*Bn_til_0_asy[n-1,:,k] - e_n[2*n+1,k]*Bn_til_0_asy[n,:,k];
+
+  for n in range(N):
+    for k in range(NEH):
       # antisymmetric subsystem --> (B2, B4, B6, ... ) <-- from matrix F (with N elements)
       auxBn_R_0_asy[n,:,k] = aux_asy[n] * Bn_til_0_asy[n,:,k]
-      Cn_R_0_asy[n,:,k]    = np.real(-d_n[2*n+1,k]*Bn_til_0_asy[n-1,:,k]-e_n[2*n+1,k]*Bn_til_0_asy[n,:,k])
-
-  n1 = 0
-  for k in range(NEH):
-    # antisymmetric subsystem --> (B2, B4, B6, ... ) <-- from matrix F (with N elements)
-    auxBn_R_0_asy[n1,:,k] = aux_asy[n1]    * Bn_til_0_asy[n1,:,k]
-    Cn_R_0_asy[n1,:,k]    = -e_n[2*n1+1,k] * Bn_til_0_asy[n1,:,k]
-
-  ## OR
-  #for n in np.arange(0,N):
-    #for k in np.arange(0,NEH):
-      ## antisymmetric subsystem --> (B2, B4, B6, ... ) <-- from matrix F (with N elements)
-      #auxBn_R_0_asy[n,:,k] = aux_asy[n]*Bn_til_0_asy[n,:,k];
-      #if n==0:
-        #Cn_R_0_asy[n,:,k]  = -e_n[2*n+1,k]*Bn_til_0_asy[n,:,k];
-      #else:
-        #Cn_R_0_asy[n,:,k]  = -d_n[2*n+1,k]*Bn_til_0_asy[n-1,:,k] - e_n[2*n+1,k]*Bn_til_0_asy[n,:,k];
+      if n==0:
+        Cn_R_0_asy[n,:,k]    = -e_n[2*n+1,k] * Bn_til_0_asy[n,:,k]
+      else:
+        Cn_R_0_asy[n,:,k]    = np.real(-d_n[2*n+1,k]*Bn_til_0_asy[n-1,:,k]-e_n[2*n+1,k]*Bn_til_0_asy[n,:,k])
+        # note that np.real is not in the matlab version!
 
 
   # The Bn's to be stored are (B0=0, B2, B4 ... ), hence:
-  Bn_R_0_asy[1:N-1,:,:] = auxBn_R_0_asy[0:N-2,:,:]
-  Bn_R_0_asy[0,:,:]     = 0
+  Bn_R_0_asy[1:N-1] = auxBn_R_0_asy[0:N-2]
+  Bn_R_0_asy[0]     = 0
 
 
   # Storing the coefficients in columns as:
   # symmetric subsystem     --> (C0, A0, B1, C2, A2, B3, ...)
   # antisymmetric subsystem --> (B0, C1, A1, B2, C3, A3, ...)
   n1 = 0
-  for n in np.arange(0,maxN,3):
+  for n in range(0,maxN,3):
     # _____________Westward rotational_______________
     # ------------ symmetric subsystem ------------ #
-    ABC_WR_0_sy[n,:,:]    = Cn_R_0_sy[n1,:,:]
+    ABC_WR_0_sy[n]    = Cn_R_0_sy[n1]
     # An coefficients are all zero
-    ABC_WR_0_sy[n+2,:,:]  = Bn_R_0_sy[n1,:,:]
+    ABC_WR_0_sy[n+2]  = Bn_R_0_sy[n1]
     # ---------- antisymmetric subsystem ---------- #
-    ABC_WR_0_asy[n,:,:]   = Bn_R_0_asy[n1,:,:]
-    ABC_WR_0_asy[n+1,:,:] = Cn_R_0_asy[n1,:,:]
+    ABC_WR_0_asy[n]   = Bn_R_0_asy[n1]
+    ABC_WR_0_asy[n+1] = Cn_R_0_asy[n1]
     # An coefficients are all zero
     # ____________________________________________
     n1 = n1 + 1
 
-  #  The eastward gravity mode of lowest order
-  #  is eigenvector of matrix E. Therefore,
-  ABC_EG_0_sy[:,0,:] = ABC_WR_0_sy[:,0,:]
+  # The eastward gravity mode of lowest order
+  # is eigenvector of matrix E. Therefore:
+  ABC_EG_0_sy[:,0] = ABC_WR_0_sy[:,0]
 
 
   # Normalising the coefficients -------------------------------------
@@ -430,19 +439,19 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   NormaWR_sy  = np.zeros((nLR//2+1,NEH),dtype=dType)
   NormaWR_asy = np.zeros((nLR//2,NEH)  ,dtype=dType)
 
-  for la in np.arange(0,nLG//2):
+  for la in range(nLG//2):
     for nh in np.arange(0,NEH):
       NormaWG_sy[la,nh]  = np.linalg.norm(ABC_WG_0_sy[:,la,nh])
       NormaWG_asy[la,nh] = np.linalg.norm(ABC_WG_0_asy[:,la,nh])
       NormaEG_sy[la,nh]  = np.linalg.norm(ABC_EG_0_sy[:,la,nh])
       NormaEG_asy[la,nh] = np.linalg.norm(ABC_EG_0_asy[:,la,nh])
 
-  for la in np.arange(0,nLR//2):
+  for la in range(nLR//2):
     for nh in np.arange(0,NEH):
       NormaWR_sy[la,nh]  = np.linalg.norm(ABC_WR_0_sy[:,la,nh])
       NormaWR_asy[la,nh] = np.linalg.norm(ABC_WR_0_asy[:,la,nh])
 
-  for nh in np.arange(0,NEH):
+  for nh in range(NEH):
     NormaWR_sy[nLR//2,nh]  = np.linalg.norm(ABC_WR_0_sy[:,nLR//2,nh])
 
   ABC_WG_0_sy  = ABC_WG_0_sy/NormaWG_sy
@@ -451,7 +460,6 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   ABC_EG_0_asy = ABC_EG_0_asy/NormaEG_asy
   ABC_WR_0_sy  = ABC_WR_0_sy/NormaWR_sy
   ABC_WR_0_asy = ABC_WR_0_asy/NormaWR_asy
-
 
   # Because the westward gravity modes have been obtained as minus the square root of the
   # eigenvalues of C and D, their order may be reversed (optionally).
@@ -472,7 +480,6 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     ABC_WR_0[:,2*l-1,:] = ABC_WR_0_sy[:,l,:]
     ABC_WR_0[:,2*l,:]   = ABC_WR_0_asy[:,l-1,:]
 
-
   ABC_WR_0[:,nLR-1,:]   = ABC_WR_0_sy[:,nLR//2,:]
 
 
@@ -481,87 +488,34 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   #  The associated Legendre functions are evaluated for degrees n=0,...,2*N and orders M = 0 and 1, for
   #  each element of X. N must be a scalar integer and X must contain real values between -1 <= x <= 1.
 
-  # M=0 ---------------------------
+  # M=0
   print('  - Normalized Associated Legendre Functions - M=0')
-  # Deffining the array for the Associated Legendre Functions (Unnormalized and normalized)
-  uP0_n = np.zeros((2*N,x.size),dtype=dType) # unnormalized
   P0_n  = np.zeros((2*N,x.size),dtype=dType) # normalized
 
-  # The order
-  m = 0
+  for n in range(2*N):
+    P0_n[n,:]=calcs.leg(n,x,True)[0] # P(0,n)
 
-  # Computing first two Associated Legendre Functions
-  for n in range(2):
-    # Looping over the latitudes in x
-    for z in range(x.size):
-      P0n,dP0n_dz = sp.special.lpmn(m, n, x[z])
-      uP0_n[n,z]    = P0n[m,n]
-      n_m           = np.math.factorial(n-m)
-      nm            = np.math.factorial(n+m)
-      P0_n[n,z]     = (-1)**m * np.sqrt((n+0.5)*n_m/(nm)) * uP0_n[n,z]; # normalizing
-
-  # Computing the remaining Associated Legendre Functions by recurrence relation (accurate)
-  for n in range(2,2*N):
-    P0_n[n,:] = np.sqrt((4*(n**2) -1)/(n**2-m**2)) * (x*P0_n[n-1,:]-np.sqrt(((n-1)**2-m**2)/(4*(n-1)**2 -1))*P0_n[n-2,:])
-
-  # Alternative (slower)
-  ## Looping over first half of the degrees (0:N)
-  #for n in np.arange(0,N):
-  ## Looping over the latitudes in x
-    #for z in np.arange(0,x.size):
-      #[P0n,dP0n_dz] = sp.special.lpmn(m, n, x[z])
-      #uP0_n[n,z]    = P0n[m,n];
-      #n_m           = sp.factorial(n-m);
-      #nm            = sp.factorial(n+m);
-      #P0_n[n,z]     = (-1)**m*np.sqrt((n+0.5)*n_m/(nm))*uP0_n[n,z]; # normalizing
-
-  ## Looping over the second half of the degrees (N+1:2*N), and
-  ## computing Legendre Functions by recurrence relation
-  #for n in np.arange(N,2*N):
-    #P0_n[n,:] = np.sqrt( (4*(n**2) -1) / (n**2 - m**2) ) * ( x*P0_n[n-1,:] - np.sqrt( ((n-1)**2 - m**2) / (4*(n-1)**2 -1) )*P0_n[n-2,:] )
-
-
-  # M=1 ---------------------------
+  # M=1
   print('  - Normalized Associated Legendre Functions - M=1')
-  # Deffining the array for the Associated Legendre Functions (Unnormalized and normalized)
-  uP1_n = np.zeros((2*N,x.size),dtype=dType)   # unnormalized
-  P1_n  = np.zeros((2*N,x.size),dtype=dType)   # normalized
+  P1_n  = np.zeros((2*N,x.size),dtype=dType) # normalized
+  #P1_n[0,:] = 0  # P(1,0)=0
+  for n in range(1,2*N):
+    P1_n[n,:]=calcs.leg(n,x,True)[1] # P(1,n)
 
-  # The order
-  m = 1
-
-  # m must be <= n, therefore P1_0=0 for m=1 and n=0.
-  #P1_n[0,:] = 0
-
-  # Computing first two Associated Legendre Functions
-  for n in range(1,3):
-    # Looping over the latitudes in x
-    for z in np.arange(0,x.size):
-      P1n,dP1n_dz = sp.special.lpmn(m, n, x[z])
-      uP1_n[n,z]  = P1n[m,n]
-      n_m         = np.math.factorial(n-m)
-      nm          = np.math.factorial(n+m)
-      P1_n[n,z]   = (-1)**m * np.sqrt((n+0.5)*n_m/(nm)) * uP1_n[n,z]   # normalizing
-
-  # Computing the remaing Associated Legendre Functions by recurrence relation
-  for n in range(3,2*N):
-    P1_n[n,:] = np.sqrt((4*(n**2)-1)/(n**2-m**2)) * (x*P1_n[n-1,:]-np.sqrt(((n-1)**2-m**2)/(4*(n-1)**2 -1))*P1_n[n-2,:])
-
-
-  # Dimensions --------------------
-  # Arrays for the Hough functions
-  HOUGH_0_UVZ = np.zeros((3,L,NEH,len(x)),dtype=cType)  # Hough functions for n=0.
-  AUX_0_UVZ   = np.zeros((3,L,NEH,len(x)),dtype=cType)  # Auxiliar array for summation (3.22)
 
   # HOUGH vector functions --------
   # computed using eq. (3.22) in Swarztrauber and Kasahara (1985)
   #
+  # Arrays for the Hough functions
+  HOUGH_0_UVZ = np.zeros((3,L,NEH,len(x)),dtype=cType)  # Hough functions for n=0.
+  AUX_0_UVZ   = np.zeros((3,L,NEH,len(x)),dtype=cType)  # Auxiliar array for summation (3.22)
+
   # GRAVITY MODES
   print('  - HVF: gravity modes')
 
   try:
     from progressbar import ProgressBar
-    pBar=ProgressBar(maxval=nLG//2+1-1,term_width=50)
+    pBar=ProgressBar(maxval=nLG//2,term_width=50)
     pBar.start()
   except: pBar=False
 
@@ -616,7 +570,7 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
 
   if pBar: pBar.finish()
 
-  #
+
   # ROSSBY MODES
   print('  - HVF: rossby modes')
 
@@ -639,12 +593,12 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
         # ----------------------------------- Component 3 ---------------------------------------
         AUX_0_UVZ[2,2*l-1+2*nLG,neh-1,:]   = -ABC_WR_0[3*n-3,2*l-1,neh-1] * P0_n[2*n-2,:];
         HOUGH_0_UVZ[2,2*l-1+2*nLG,neh-1,:] = HOUGH_0_UVZ[2,2*l-1+2*nLG,neh-1,:] + AUX_0_UVZ[2,2*l-1+2*nLG,neh-1,:];
-        # ================================= ANTISYMMETRIC SUBSISTEMS ===============================
+        # ================================= ANTISYMMETRIC SUBSISTEMS ============================
         # --------------------------------- Westward rossby -------------------------------------
         # ----------------------------------- Component 1 ---------------------------------------
         AUX_0_UVZ[0,2*l-2+2*nLG,neh-1,:]   = - ABC_WR_0[3*n-3,2*l-2,neh-1] * P1_n[2*n-2,:] + 0*I;
         HOUGH_0_UVZ[0,2*l-2+2*nLG,neh-1,:] = HOUGH_0_UVZ[0,2*l-2+2*nLG,neh-1,:] + AUX_0_UVZ[0,2*l-2+2*nLG,neh-1,:] + 0*I;
-        # ------------------------------------ Component 2 ---------------------------------------
+        # ------------------------------------ Component 2 --------------------------------------
         AUX_0_UVZ[1,2*l-2+2*nLG,neh-1,:]   = I*ABC_WR_0[3*n-1,2*l-2,neh-1] * P1_n[2*n-1,:];
         HOUGH_0_UVZ[1,2*l-2+2*nLG,neh-1,:] = HOUGH_0_UVZ[1,2*l-2+2*nLG,neh-1,:] + AUX_0_UVZ[1,2*l-2+2*nLG,neh-1,:];
         # ----------------------------------- Component 3 ---------------------------------------
@@ -663,9 +617,8 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
   # corresponding to eastward gravity, westward gravity and westward rotational (rossby) modes.
 
 
-  # Dimensions --------------------
   # Arrays for the Hough functions
-  HOUGH_UVZ   = np.zeros((3,M,L,NEH,len(x)),dtype=cType)   # Hough functions for m>0.
+  HOUGH_UVZ   = np.zeros((3,M,L,NEH,len(x)),dtype=cType)   # Hough functions for m>0
   AUX_UVZ     = np.zeros((3,M,L,NEH,len(x)),dtype=cType)   # Auxiliar array for summation (3.22)
 
   # Arrays for the frequencies (eigenvalues)
@@ -697,10 +650,10 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     print('  %d of %d'%(m,M))
 
     # Terms r_n, qm_n and pm_n
-    n=m+np.arange(0,maxN)
+    n=m+np.arange(maxN,dtype=dType) # dtype is needed in python 2 !!!
     r_n=np.zeros((maxN,NEH),dtype=dType)
-    for gl in np.arange(1,NEH+1):
-      for k in np.arange(1,maxN+1):
+    for gl in range(1,NEH+1):
+      for k in range(1,maxN+1):
         # Eq. (3.26) in Swarztrauber and Kasahara (1985)
         r_n[k-1,gl-1] = Ga[gl-1] * np.sqrt(n[k-1]*(n[k-1]+1))
 
@@ -717,9 +670,9 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     # Matrix A is given by eq. (3.28) in Swarztrauber and Kasahara (1985)
     if m==1: print('  - Matrix A')
     #-----------------------------------------------------------------
-    A_uud = np.zeros((maxN,NEH),dtype=dType)   # Uppermost diagonal elements for Matrix A.
-    A_ud  = np.zeros((maxN,NEH),dtype=dType)   # Upper diagonal elements for Matrix A.
-    A_md  = np.zeros((maxN,NEH),dtype=dType)   # Main diagonal elements for Matrix A.
+    A_uud = np.zeros((maxN,NEH),dtype=dType) # Uppermost diagonal elements for Matrix A
+    A_ud  = np.zeros((maxN,NEH),dtype=dType) # Upper diagonal elements for Matrix A
+    A_md  = np.zeros((maxN,NEH),dtype=dType) # Main diagonal elements for Matrix A
     for k in range(1,maxN//3+1):
       A_uud[3*k-1] =  pm_n[2*k]
       A_ud[3*k-3]  =  r_n[2*k-2]
@@ -727,35 +680,35 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
       A_md[3*k-2]  = -qm_n[2*k-2]
       A_md[3*k-1]  = -qm_n[2*k-1]
 
-    A_uud = A_uud[0:maxN-2]   # Only the first maxN-2 elements are needed.
-    A_ud  = A_ud[0:maxN-1]    # Only the first maxN-1 elements are needed.
-    #A_lld=A_uud.copy();         # Lowermost diagonal elements for Matrix A (not needed).
-    #A_ld=A_ud.copy();           # Lower diagonal elements for Matrix A (not needed).
+    A_uud = A_uud[:maxN-2] # Only the first maxN-2 elements are needed
+    A_ud  = A_ud[:maxN-1]  # Only the first maxN-1 elements are needed
+    #A_lld=A_uud.copy();   # Lowermost diagonal elements for Matrix A (not needed)
+    #A_ld=A_ud.copy();     # Lower diagonal elements for Matrix A (not needed)
 
     # Creating the pentadiagonal matrix A and calculating it's eigenvalues/eigenvectors.
-    A    = np.zeros((maxN,maxN,NEH),dtype=dType)
     S_A  = np.zeros((maxN,NEH)     ,dtype=dType)
     U_A  = np.zeros((maxN,maxN,NEH),dtype=dType)
-    IA2sort = np.zeros((maxN,NEH)  ,dtype=int)
 
-    for gl in range(1,NEH+1):
-      # Pentadiagonal matrix A.
-      A[:,:,gl-1]      = np.diag(A_uud[:,gl-1],k=-2) + np.diag(A_ud[:,gl-1],k=-1) + np.diag(A_md[:,gl-1],k=0) + np.diag(A_ud[:,gl-1],k=1) + np.diag(A_uud[:,gl-1],k=2)
-      # The eigenvalues/eigenvectors of A [eq. (3.29) in Swarztrauber and Kasahara (1985)]
-      [auxAUXa,auxU_A] = np.linalg.eigh(np.squeeze(A[:,:,gl-1]))
-      S_A[:,gl-1]      = auxAUXa                            # The eigenvalues.
-      U_A[:,:,gl-1]    = auxU_A                             # The corresponding eigenvectors.
-      IA2sort[:,gl-1]  = np.argsort(S_A[:,gl-1],axis=0)     # Returns the indices that would sort the eigenvalues.
-      S_A[:,gl-1]      = S_A[IA2sort[:,gl-1],gl-1]          # Sorting the eigenvalues.
-      U_A[:,:,gl-1]    = U_A[:,IA2sort[:,gl-1],gl-1]        # Sorting the corresponding eigenvectors.
+    for gl in range(NEH):
+      # Pentadiagonal matrix A
+      A=np.diag(A_uud[:,gl],k=-2) + np.diag(A_ud[:,gl],k=-1) + np.diag(A_md[:,gl],k=0) + np.diag(A_ud[:,gl],k=1) + np.diag(A_uud[:,gl],k=2)
+
+      # The eigenvectors/eigenvalues of A [eq. (3.29) in Swarztrauber and Kasahara (1985)]
+      eig_val,eig_vec=np.linalg.eig(A)
+      isort=np.argsort(eig_val)
+      eig_val=eig_val[isort]
+      eig_vec=eig_vec[:,isort]
+
+      S_A[:,gl]   = eig_val
+      U_A[:,:,gl] = eig_vec
 
 
     # Matrix B is given by eq. (3.31) in Swarztrauber and Kasahara (1985)
     if m==1: print('  - Matrix B')
     #-----------------------------------------------------------------
-    B_uud = np.zeros((maxN,NEH),dtype=dType)   # Uppermost diagonal elements for Matrix B.
-    B_ud  = np.zeros((maxN,NEH),dtype=dType)   # Upper diagonal elements for Matrix B.
-    B_md  = np.zeros((maxN,NEH),dtype=dType)   # Main diagonal elements for Matrix B.
+    B_uud = np.zeros((maxN,NEH),dtype=dType) # Uppermost diagonal elements for Matrix B
+    B_ud  = np.zeros((maxN,NEH),dtype=dType) # Upper diagonal elements for Matrix B
+    B_md  = np.zeros((maxN,NEH),dtype=dType) # Main diagonal elements for Matrix B
     for k in range(1,maxN//3+1):
       B_uud[3*k-3] =  pm_n[2*k-1]
       B_ud[3*k-2]  =  r_n[2*k-1]
@@ -763,29 +716,27 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
       B_md[3*k-3]  = -qm_n[2*k-2]
       B_md[3*k-1]  = -qm_n[2*k-1]
 
-    B_uud = B_uud[0:maxN-2]   # Only the first maxN-2 elements are needed.
-    B_ud  = B_ud[0:maxN-1]    # Only the first maxN-1 elements are needed.
-    #B_lld=B_uud.copy()         # Lowermost diagonal elements for Matrix B (not needed).
-    #B_ld=B_ud.copy()           # Lower diagonal elements for Matrix B (not needed).
-
+    B_uud = B_uud[0:maxN-2] # Only the first maxN-2 elements are needed.
+    B_ud  = B_ud[0:maxN-1]  # Only the first maxN-1 elements are needed.
+    #B_lld=B_uud.copy()     # Lowermost diagonal elements for Matrix B (not needed)
+    #B_ld=B_ud.copy()       # Lower diagonal elements for Matrix B (not needed)
 
     # Creating the pentadiagonal matrix A and calculating it's eigenvalues/eigenvectors.
-    B       = np.zeros((maxN,maxN,NEH),dtype=dType)
-    S_B     = np.zeros((maxN,NEH)     ,dtype=dType)
-    U_B     = np.zeros((maxN,maxN,NEH),dtype=dType)
-    IB2sort = np.zeros((maxN,NEH)     ,dtype=int)
+    S_B = np.zeros((maxN,NEH)     ,dtype=dType)
+    U_B = np.zeros((maxN,maxN,NEH),dtype=dType)
 
-    for gl in range(1,NEH+1):
-      # Pentadiagonal matrix A.
-      B[:,:,gl-1]      = np.diag(B_uud[:,gl-1],k=-2) + np.diag(B_ud[:,gl-1],k=-1) + np.diag(B_md[:,gl-1],k=0) + np.diag(B_ud[:,gl-1],k=1) + np.diag(B_uud[:,gl-1],k=2)
+    for gl in range(NEH):
+      # Pentadiagonal matrix B
+      B = np.diag(B_uud[:,gl],k=-2) + np.diag(B_ud[:,gl],k=-1) + np.diag(B_md[:,gl],k=0) + np.diag(B_ud[:,gl],k=1) + np.diag(B_uud[:,gl],k=2)
+
       # The eigenvalues/eigenvectors of B [eq. (3.32) in Swarztrauber and Kasahara (1985)]
-      [auxAUXb,auxU_B] = np.linalg.eigh(np.squeeze(B[:,:,gl-1]))
-      S_B[:,gl-1]      = auxAUXb                            # The eigenvalues.
-      U_B[:,:,gl-1]    = auxU_B                             # The corresponding eigenvectors.
-      IB2sort[:,gl-1]  = np.argsort(S_B[:,gl-1],axis=0)     # Returns the indices that would sort the eigenvalues.
-      S_B[:,gl-1]      = S_B[IB2sort[:,gl-1],gl-1]          # Sorting the eigenvalues.
-      U_B[:,:,gl-1]    = U_B[:,IB2sort[:,gl-1],gl-1]        # Sorting the corresponding eigenvectors.
+      eig_val,eig_vec=np.linalg.eig(B)
+      isort=np.argsort(eig_val)
+      eig_val=eig_val[isort]
+      eig_vec=eig_vec[:,isort]
 
+      S_B[:,gl]   = eig_val
+      U_B[:,:,gl] = eig_vec
 
     if m==1: print('  - selecting freqs and coeffs')
     # Selecting the frequencies and the coefficients for the vector harmonic expansion.
@@ -822,14 +773,7 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     #  The associated Legendre functions are evaluated for degrees n=0,...,2*N and orders M = 0 and 1,for
     #  each element of x. N must be a scalar integer and X must contain real values between -1 <= x <= 1.
 
-    # Deffining the array for the Associated Legendre functions (Unnormalized and normalized)
-    # The Unnormalized
-    uPm_n    = np.zeros((2*N,x.size),dtype=dType)
-    uPmm1_n  = np.zeros((2*N,x.size),dtype=dType)
-    uPmM1_n  = np.zeros((2*N,x.size),dtype=dType)
-    uPmm1_n1 = np.zeros((2*N,x.size),dtype=dType)
-    uPmM1_n1 = np.zeros((2*N,x.size),dtype=dType)
-    # The Normalized
+    # Deffining the array for the Associated Legendre functions (normalized)
     Pm_n    = np.zeros((2*N,x.size),dtype=dType)
     Pmm1_n  = np.zeros((2*N,x.size),dtype=dType)
     PmM1_n  = np.zeros((2*N,x.size),dtype=dType)
@@ -838,74 +782,40 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
 
 
     if m==1: print('  - Associated Legendre Functions')
-    # Computing first two Associated Legendre Functions
-    for n in range(m,m+2):
-      # Looping over the latitudes in x
-      for z in range(x.size):
-        # P(m,n)
-        Pmn,dPmn_dz  = sp.special.lpmn(m, n, x[z])
-        uPm_n[n-m,z] = Pmn[m,n]
-        n_m          = np.math.factorial(n-m)
-        nm           = np.math.factorial(n+m)
-        Pm_n[n-m,z]  = (-1)**m * np.sqrt((n+0.5)*n_m/(nm)) * uPm_n[n-m,z] # P(m,n) normalized
 
-        # P(m-1,n)
-        Pmm1n,dPmm1n_dz = sp.special.lpmn(m-1, n, x[z])
-        uPmm1_n[n-m,z]  = Pmm1n[m-1,n]
-        n_m             = np.math.factorial(n-(m-1))
-        nm              = np.math.factorial(n+(m-1))
-        Pmm1_n[n-m,z]   = (-1)**(m-1) * np.sqrt((n+0.5)*n_m/(nm)) * uPmm1_n[n-m,z] # P(m-1,n) normalized
+    for n in range(m,2*N+m):
+      aux=calcs.leg(n,x,True)
 
-        # P(m+1,n)
-        PmM1n,dPmM1n_dz  = sp.special.lpmn(m+1, n+1, x[z])
-        uPmM1_n[n-m+1,z] = PmM1n[m+1,n+1]
-        n_m              = np.math.factorial(n+1-(m+1))
-        nm               = np.math.factorial(n+1+(m+1))
-        PmM1_n[n-m+1,z]  = (-1)**(m+1) * np.sqrt((n+1+0.5)*n_m/(nm)) * uPmM1_n[n-m+1,z] # P(m+1,n) normalized
+      Pm_n[n-m]   = aux[m]     # P(m,n)
 
-        # P(m-1,n-1)
-        Pmm1n1,dPmm1n1_dz = sp.special.lpmn(m-1, n-1, x[z])
-        uPmm1_n1[n-m,z]     = Pmm1n1[m-1,n-1]
-        n_m                 = np.math.factorial(n-1-(m-1))
-        nm                  = np.math.factorial(n-1+(m-1))
-        Pmm1_n1[n-m,z]     = (-1)**(m-1) * np.sqrt((n-1+0.5)*n_m/(nm)) * uPmm1_n1[n-m,z] # P(m-1,n-1) normalized
+      Pmm1_n[n-m] = aux[m-1]   # P(m-1,n)
 
-        # P(m+1,n-1)
-        PmM1n1,dPmM1n1_dz = sp.special.lpmn(m+1, n+1, x[z])
-        uPmM1_n1[n-m+2,z]     = PmM1n1[m+1,n+1]
-        n_m                 = np.math.factorial(n+1-(m+1))
-        nm                  = np.math.factorial(n+1+(m+1))
-        PmM1_n1[n-m+2,z]     = (-1)**(m+1) * np.sqrt((n+1+0.5)*n_m/(nm)) * uPmM1_n1[n-m+2,z] # P(m+1,n-1) normalized
+      if n>=m+1:
+        PmM1_n[n-m]=aux[m+1]   # P(m+1,n)
 
+      aux1=calcs.leg(n-1,x,True)
 
-    # Computing the remaining Associated Legendre Functions by recurrence relation
-    for n in range(m+2,2*N+1):
-      Pm_n[n-m,:]    = np.sqrt((4*(n**2)-1)/(n**2-m**2))             * (x*Pm_n[n-m-1,:]-np.sqrt(((n-1)**2 - m**2)/(4*(n-1)**2-1))*Pm_n[n-m-2,:])
-      Pmm1_n[n-m,:]  = np.sqrt((4*(n**2)-1)/(n**2-(m-1)**2))         * (x*Pmm1_n[n-m-1,:]-np.sqrt(((n-1)**2-(m-1)**2)/(4*(n-1)**2-1))*Pmm1_n[n-m-2,:])
-      Pmm1_n1[n-m,:] = np.sqrt((4*((n-1)**2)-1)/((n-1)**2-(m-1)**2)) * (x*Pmm1_n1[n-m-1,:]-np.sqrt((((n-1)-1)**2-(m-1)**2)/(4*((n-1)-1)**2-1))*Pmm1_n1[n-m-2,:])
+      Pmm1_n1[n-m]=aux1[m-1]   # P(m-1,n-1)
 
-    for n in range(m+2,2*N):
-      PmM1_n[n-m+1,:] = np.sqrt((4*((n+1)**2)-1)/((n+1)**2-(m+1)**2)) * (x*PmM1_n[n-m,:]-np.sqrt((((n+1)-1)**2-(m+1)**2)/(4*((n+1)-1)**2 -1))*PmM1_n[n-m-1,:])
-
-    for n in range(m+2,2*N-1):
-      PmM1_n1[n-m+2,:] = np.sqrt((4*((n+1)**2)-1)/((n+1)**2-(m+1)**2)) * (x*PmM1_n1[n-m+1,:]-np.sqrt((((n+1)-1)**2-(m+1)**2)/(4*((n+1)-1)**2 -1))*PmM1_n1[n-m,:])
+      if n-1>=m+1:
+        PmM1_n1[n-m]=aux1[m+1] # P(m+1,n-1)
 
 
     # Derivative of associated Legendre functions with respect to latitude (eq. (3.3))
     dPm_n_dLat = np.zeros((2*N,x.size),dtype=dType)
     for n in range(m,2*N+m):
-      dPm_n_dLat[n-m,:] = (1.0/2) * (np.sqrt((n-m)*(n+m+1))*PmM1_n[n-m,:]-np.sqrt((n+m)*(n-m+1))*Pmm1_n[n-m,:]);
+      dPm_n_dLat[n-m,:] = (1./2) * (np.sqrt((n-m)*(n+m+1))*PmM1_n[n-m,:]-np.sqrt((n+m)*(n-m+1))*Pmm1_n[n-m,:]);
 
     # The term given by eq. (3.4)
     mPm_n_cosLat = np.zeros((2*N,x.size),dtype=dType)
     for n in range(m,2*N+m):
-      mPm_n_cosLat[n-m,:] = (1.0/2) * np.sqrt((2*n+1)/(2*n-1)) * (np.sqrt((n+m)*(n+m-1))*Pmm1_n1[n-m,:]+np.sqrt((n-m)*(n-m-1))*PmM1_n1[n-m,:]);
+      mPm_n_cosLat[n-m,:] = (1./2) * np.sqrt((2*n+1)/(2*n-1.)) * (np.sqrt((n+m)*(n+m-1))*Pmm1_n1[n-m,:]+np.sqrt((n-m)*(n-m-1))*PmM1_n1[n-m,:]);
 
 
     # The spherical vector harmonics -----------------------------------
     if m==1: print('  - spherical vector harmonics')
     # The spherical vector harmonics will be computed using eqs. (3.1) without the factor e^(i m lambda), since
-    # this factor will be canceled in the summation (3.22).
+    # this factor will be canceled in the summation (3.22)
     y1m_n = np.zeros((3,2*N,x.size),dtype=cType)
     y2m_n = np.zeros((3,2*N,x.size),dtype=cType)
     y3m_n = np.zeros((3,2*N,x.size),dtype=cType)
@@ -914,14 +824,16 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     for n in range(m,2*N+m):
       y1m_n[0,n-m] = I * mPm_n_cosLat[n-m,:] / np.sqrt(n*(n+1))
       y1m_n[1,n-m] = dPm_n_dLat[n-m,:]       / np.sqrt(n*(n+1))
-      y2m_n[1,n-m] = I * mPm_n_cosLat[n-m,:] / np.sqrt(n*(n+1))
-      y2m_n[0,n-m] = -dPm_n_dLat[n-m,:]      / np.sqrt(n*(n+1))
+
+    y2m_n[0] = -y1m_n[1]
+    y2m_n[1] = y1m_n[0]
 
 
     # HOUGH vector functions -----------------------------------------
     # The HOUGH vector functions are computed using eq. (3.22) in Swarztrauber and Kasahara (1985)
 
     if m==1: print('  - HVF: gravity')
+
     for l in range(1,nLG//2+1):
       for neh in range(1,NEH+1):
         for n in range(1,N+1):
@@ -958,6 +870,7 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
 
 
     if m==1: print('  - HVF: rossby')
+
     for l in range(1,nLR//2+1):
       for neh in range(1,NEH+1):
         for n in range(1,N+1):
@@ -978,28 +891,17 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
           AUX_UVZ[2,m-1,2*l-1-1+2*nLG,neh-1,:]   = -ABC_WR_asy[m-1,3*n-1-1,l-1,neh-1] * y3m_n[2,2*n-1,:]
           HOUGH_UVZ[2,m-1,2*l-1-1+2*nLG,neh-1,:] = HOUGH_UVZ[2,m-1,2*l-1-1+2*nLG,neh-1,:] + AUX_UVZ[2,m-1,2*l-1-1+2*nLG,neh-1,:]
 
+
   # End the zonal wave numbers
   print('End of part II (zonal wave numbers m>0)')
 
-  S_C=S_C.copy()
-  Sa_F=Sa_F.copy()
+  # The first symmetric (lowest order) eastward gravity mode is eigenvector of matrix E
+  WEST_R_0_sy      = Sa_E[1:nLR//2+1]
 
-  #  The first symmetric (lowest order) eastward gravity mode is eigenvector of matrix E
-  EAST_G_0_sy[0]  = Sa_E[0]
-  WEST_R_0_asy[0] = S_C[0]
-  for la in range(nLG//2-1):
-    EAST_G_0_sy[la+1]  = S_C[la+1]
+  WEST_R_0_asy[1:] = WEST_R_0_asy[:-1]
+  WEST_R_0_asy[0]  = S_C[0]
 
-  for la in range(nLR//2-1):
-    WEST_R_0_asy[la+1] = Sa_F[la]
-
-  for la in range(nLR//2):
-    WEST_R_0_sy[la]    = Sa_E[la+1]
-
-
-  EAST_G_0_sy  = EAST_G_0_sy[:nLG//2]
-  WEST_R_0_asy = WEST_R_0_asy[:nLR//2]
-
+  EAST_G_0_sy[0]   = Sa_E[0]
 
   # end of calculations
 
@@ -1046,11 +948,11 @@ def calc_CD(p_n,r_n,add=0):
     C_md[k] = r_n[2*k+add] * r_n[2*k+add] + p_n[2*k-1+add] * p_n[2*k-1+add] + p_n[2*k+add] * p_n[2*k+add]
 
   # Creating the tridiagonal matrix and calculating it's eigenvalues/eigenvectors.
-  C      = np.zeros((N,N,NEH),dtype=dType)
-  S_C    = np.zeros((N,NEH)  ,dtype=dType)
-  S_Caux = np.zeros((N,NEH)  ,dtype=dType)
-  U_C    = np.zeros((N,N,NEH),dtype=dType)
-  IC2sort = np.zeros((N,NEH) ,dtype=int)
+  C       = np.zeros((N,N,NEH),dtype=dType)
+  S_C     = np.zeros((N,NEH)  ,dtype=dType)
+  S_Caux  = np.zeros((N,NEH)  ,dtype=dType)
+  U_C     = np.zeros((N,N,NEH),dtype=dType)
+#########################################3  IC2sort = np.zeros((N,NEH)  ,dtype=int)
 
   for gi in range(0,NEH):
     # Tridiagonal matrix
@@ -1059,10 +961,12 @@ def calc_CD(p_n,r_n,add=0):
     auxAUXc,auxU_C = np.linalg.eigh(np.squeeze(C[:,:,gi]))
     U_C[:,:,gi]    = auxU_C
     S_Caux[:,gi]   = auxAUXc
-    IC2sort[:,gi]  = np.argsort(S_Caux[:,gi],axis=0) # indices that would sort the eigenvalues
-    S_Caux[:,gi]   = S_Caux[IC2sort[:,gi],gi]        # Sorting the eigenvalues
-    U_C[:,:,gi]    = U_C[:,IC2sort[:,gi],gi]         # Sorting the corresponding eigenvectors
+#############    IC2sort[:,gi]  = np.argsort(S_Caux[:,gi],axis=0) # indices that would sort the eigenvalues
+#############    S_Caux[:,gi]   = S_Caux[IC2sort[:,gi],gi]        # Sorting the eigenvalues
+    IC2sort  = np.argsort(S_Caux[:,gi],axis=0) # indices that would sort the eigenvalues
+    S_Caux[:,gi]   = S_Caux[IC2sort,gi]        # Sorting the eigenvalues
+    U_C[:,:,gi]    = U_C[:,IC2sort,gi]         # Sorting the corresponding eigenvectors
 
-  S_C = np.sqrt(S_Caux);   # Frequencies (Sigma)
+  S_C = np.sqrt(S_Caux)   # Frequencies (Sigma)
 
   return C,S_C,U_C

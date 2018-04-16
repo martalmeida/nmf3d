@@ -1,7 +1,7 @@
 from . import calcs
 from . import vertical_structure
 from . import hough_functions
-from . import enlk
+from . import wnlk
 
 def __folders():
   import os

@@ -230,7 +230,7 @@ def profile(files,**kargs):
   #  tdim  = kargs.get('tdim','time')
   #  zdim  = kargs.get('zdim','lev')
   #tdim=nc.variables[tname].dimensions[0]
-  zdim=nc.variables[zname].dimensions[0]
+  #zdim=nc.variables[zname].dimensions[0]
 
   # look for the main variable name if not provided:
   if not vname:

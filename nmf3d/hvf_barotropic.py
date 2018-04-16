@@ -16,19 +16,19 @@ def hvf_bar(nLR,nLG,M,trunc,x):
   See hough_functions
   '''
 
-  print('- HVF barotropic -')
+  print('\n- HVF barotropic -')
 
   N=trunc # truncation order
   NEH=1
-  L = nLR+2*nLG  # Total number of meridional modes used in the expansion (should be even)
+  L = nLR+2*nLG # Total number of meridional modes used in the expansion (should be even)
 
   # Total number of eigenvalues/eigenvectors for matrices A and B.
   maxN = 3*N
 
   # Dimensions --------------------
   # Arrays for the Hough functions
-  HOUGH_0_UVZ = np.zeros((3,L,len(x)),dtype=dType) # Hough functions for n=0 (for projection studies)
-  HOUGH_0_UVZ_2rec   = np.zeros((3,L,len(x)),dtype=dType) # Hough functions for n=0 (for reconstitutions studies)
+  HOUGH_0_UVZ      = np.zeros((3,L,len(x)),dtype=dType) # Hough functions for n=0 (for projection studies)
+  HOUGH_0_UVZ_2rec = np.zeros((3,L,len(x)),dtype=dType) # Hough functions for n=0 (for reconstitutions studies)
 
 
   print('Part I')
@@ -49,7 +49,7 @@ def hvf_bar(nLR,nLG,M,trunc,x):
   for n in range(1,2*N):
     P1_n[n,:] = calcs.leg(n,x,True)[1] # P(1,n)
 
-  #   P(0,n+1)
+  # P(0,n+1)
   P0_nM1 = np.zeros((2*N,x.size),dtype=dType)
   for n in range(2*N):
     P0_nM1[n] = calcs.leg(n+1,x,True)[0]   # P(0,n+1)
@@ -83,10 +83,10 @@ def hvf_bar(nLR,nLG,M,trunc,x):
 
   # Eq. (5.13)
   HOUGH_0_UVZ_2rec[1-1,2*nLG+1-1:] =  - P1_n[1:nLR+1]
-
   HOUGH_0_UVZ_2rec[3-1,2*nLG+1-1:] =  (2*const.Er*const.Om)/np.sqrt(const.g) * (p0_nMAT[:nLR]* P0_nm1[1:nLR+1] + p0_n1MAT[:nLR]*P0_nM1[1:nLR+1])
   # Note: The third component of "HOUGH_0_UVZ_2rec" was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
   # that used with dimensionalised variables, by setting artificially the barotropic equivalent height (which is infinity) to one.
+
 
   # GRAVITY MODES
   # These modes are all zero
@@ -102,7 +102,7 @@ def hvf_bar(nLR,nLG,M,trunc,x):
 
   # Dimensions --------------------
   # Arrays for the Hough functions
-  HOUGH_UVZ   = np.zeros((3,M,L,x.size),dtype=cType)    # Hough functions for m>0 (for projection studies)
+  HOUGH_UVZ      = np.zeros((3,M,L,x.size),dtype=cType) # Hough functions for m>0 (for projection studies)
   HOUGH_UVZ_2rec = np.zeros((3,M,L,x.size),dtype=cType) # Hough functions for m>0 (for reconstitutions studies)
 
   for m in range(1,M+1):  # Start the zonal wave numbers
@@ -118,27 +118,25 @@ def hvf_bar(nLR,nLG,M,trunc,x):
     Pm_nM1  = np.zeros((2*N,x.size),dtype=dType)
 
     for n in range(m,2*N-1+m+1):
-      Pm_n[n+1-m-1] = calcs.leg(n,x,True)[m+1-1] # P(m,n)
-      Pmm1_n[n+1-m-1] = calcs.leg(n,x,True)[m-1] # P(m-1,n)
+      aux= calcs.leg(n,x,True)
 
-      if n<m+1:
-        PmM1_n[n+1-m-1] = 0
-      else:
-        PmM1_n[n+1-m-1] = calcs.leg(n,x,True)[m+2-1] # P(m+1,n)
+      Pm_n[n-m]   = aux[m]       # P(m,n)
+      Pmm1_n[n-m] = aux[m-1]     # P(m-1,n)
 
-      Pmm1_n1[n+1-m-1]=calcs.leg(n-1,x,True)[m-1] # P(m-1,n-1)
+      if n>=m+1:
+        PmM1_n[n-m] = aux[m+1]   # P(m+1,n)
 
-      if n-1<m+1:
-        PmM1_n1[n+1-m-1] = 0
-      else:
-        PmM1_n1[n+1-m-1] =calcs.leg(n-1,x,True)[m+2-1] # P(m+1,n-1)
+      aux1=calcs.leg(n-1,x,True)
 
-      if n-1<m:
-        Pm_nm1[n+1-m-1] = 0
-      else:
-        Pm_nm1[n+1-m-1]=calcs.leg(n-1,x,True)[m+1-m] # P(m,n-1)
+      Pmm1_n1[n-m] = aux1[m-1]   # P(m-1,n-1)
 
-      Pm_nM1[n+1-m-1] =calcs.leg(n+1,x,True)[m+1-1] # P(m,n+1)
+      if n-1>=m+1:
+        PmM1_n1[n-m] = aux1[m+1] # P(m+1,n-1)
+
+      if n-1>=m:
+        Pm_nm1[n-m] = aux1[m]    # P(m,n-1)
+
+      Pm_nM1[n-m] =calcs.leg(n+1,x,True)[m] # P(m,n+1)
 
 
     # Derivative of associated Legendre functions with respect to latitude (eq. (3.3))
@@ -154,7 +152,7 @@ def hvf_bar(nLR,nLG,M,trunc,x):
 
 
     # The spherical vector harmonics
-    # The spherical vector harmonics will be computed using eqs. (3.1) without the factor e^(i m lambda), since
+    # - Will be computed using eqs. (3.1) without the factor e^(i m lambda), since
     # this factor will be canceled in the summation (3.22).
     y2m_n = np.zeros((3,2*N,x.size),dtype=cType)
     y1m_n = np.zeros((3,2*N,x.size),dtype=cType)
@@ -174,7 +172,7 @@ def hvf_bar(nLR,nLG,M,trunc,x):
     pm_n  = np.zeros((2*N,x.size),dtype=dType)
     pm_n1 = np.zeros((2*N,x.size),dtype=dType)
     for n in range(m,2*N-1+m+1):
-       # From eq. (3.11) in Swarztrauber and Kasahara (1985).
+       # From eq. (3.11) in Swarztrauber and Kasahara (1985)
        pm_n[n+1-m-1]  = np.sqrt( ((n+1)*(n-m)*(n+m)) / (n**3*(2*n-1.)*(2*n+1)) )    # P(m,n)/sqrt(n(n-1))
        pm_n1[n+1-m-1] = np.sqrt( (n*(n-m+1)*(n+m+1))/((n+1)**3*(2*n+1.)*(2*n+3) ))  # P(m,n+1)/sqrt((n+1)(n+2))
 

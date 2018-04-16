@@ -48,6 +48,16 @@ def hvf(hk,M=42,nLR=40,nLG=20,latType='linear',**kargs):
     format, file format: [nc] or npz
     attrs, attributes to save [{}]
     label, start of the saved filename ['out']
+
+  Returns baroclinic (data_b) and barotropic (data_B) data dicts and well as saved
+  filenames (fsave_b and fsvae_B) if save is True. If hk[0] is not inf (ws0 is False,
+  see vertical_structuree) no barotropic component is returned, ie:
+  -- if hk[0] is inf
+     - return data_b,data_B,fsave_b,fsave_B (if save is True)
+     - return data_b,data_B (if save is False)
+  -- if hk[0] is not inf
+     - returns data_b,fsave (if save is True)
+     - return data_b (if save is False)
   '''
 
   save  = kargs.get('save',True)   # create file
@@ -58,9 +68,9 @@ def hvf(hk,M=42,nLR=40,nLG=20,latType='linear',**kargs):
 
   # keep nk as global attribute of nc files
   nk=hk.size
-  attrs=kargs.get('nc_attrs',{})
-  attrs['nk']=nk
-  kargs['nc_attrs']=attrs
+  attrs=kargs.get('attrs',{})
+  attrs['nk']= np.int8(nk)
+  kargs['attrs']=attrs
 
   params=dict(M=M,nLR=nLR,nLG=nLG,NEH='unk',dlat=dlat,latType=latType) # just for saving
   if np.isinf(hk[0]): # ws0 True
@@ -87,26 +97,35 @@ def hvf(hk,M=42,nLR=40,nLG=20,latType='linear',**kargs):
 
 
 def save_out(data,tag,params,**kargs):
-    label=kargs.get('label','out')
-    format=kargs.get('format','nc') # nc or npz
-    attrs=kargs.get('attrs',{})
+  label=kargs.get('label','out')
+  format=kargs.get('format','nc') # nc or npz
+  attrs=kargs.get('attrs',{})
 
-    fsave='%s_hvf_M%d_nLR%d_nLG%d_NEH%d_dlat%s%s_%s.%s'%(label,params['M'],params['nLR'],params['nLG']*2,
+  import platform
+  import sys
+  import scipy
+  attrs['platform']=platform.platform()
+  attrs['environment']='python'
+  attrs['version']=sys.version
+  attrs['version_scipy']=scipy.__version__
+  attrs['version_numpy']=np.__version__
+
+  fsave='%s_hvf_M%d_nLR%d_nLG%d_NEH%d_dlat%s%s_%s.%s'%(label,params['M'],params['nLR'],params['nLG']*2,
                                                        params['NEH'],params['dlat'],params['latType'],tag,format)
 
-    print('saving %s'%fsave)
-    if format=='npz':
-      data.update(attrs)
-      np.savez(fsave, **data)
-    elif format=='nc':
-      if tag=='barotropic':
-        save_nc_bar(fsave,data,**attrs)
-      else:
-        save_nc(fsave,data,**attrs)
+  print('saving %s'%fsave)
+  if format=='npz':
+    data.update(attrs)
+    np.savez(fsave, **data)
+  elif format=='nc':
+    if tag=='barotropic':
+      save_nc_bar(fsave,data,**attrs)
+    else:
+      save_nc(fsave,data,**attrs)
 
-    else: print('Unknown format, use nc or npz')
+  else: print('Unknown format, use nc or npz')
 
-    return fsave
+  return fsave
 
 
 def save_nc(fname,data,**attrs):
@@ -123,6 +142,7 @@ def save_nc(fname,data,**attrs):
   M,L,NEH,lat=data['HOUGH_UVZ'].shape[1:]
   quarter_nLG=data['WEST_G_sy'].shape[1]
   half_nLR=data['WEST_R_sy'].shape[1]
+  Np1=data['WEST_R_0_sy'].shape[0]
 
   nc.createDimension('components_uvz',3)              # components uvz
   nc.createDimension('max_zonal_wave_number',M)       # max zonal wave number (M)
@@ -132,11 +152,10 @@ def save_nc(fname,data,**attrs):
 
   nc.createDimension('quarter_number_gravitical_modes',quarter_nLG)
   nc.createDimension('half_number_rossby_modes',half_nLR)
-
-  # Note that L=NG+NR=4*quarter_number_gravitical_modes+2*half_number_rossby_modes)
-
-  Np1=data['WEST_R_0_sy'].shape[0]
   nc.createDimension('Np1',Np1)
+
+  # Note that L=NG+NR=4*quarter_number_gravitical_modes+2*half_number_rossby_modes
+
 
   # variables:
   #   hough:
@@ -164,7 +183,7 @@ def save_nc(fname,data,**attrs):
 
   k='WEST_G_asy'
   v=nc.createVariable(k,data[k].dtype,dim)
-  v.long_name='frequencies of the antisymmetric westward gravity waves -eddies'
+  v.long_name='frequencies of the antisymmetric westward gravity waves - eddies'
 
   dim='max_zonal_wave_number','half_number_rossby_modes','number_equivalent_heights'
 
@@ -174,17 +193,18 @@ def save_nc(fname,data,**attrs):
 
   k='WEST_R_asy'
   v=nc.createVariable(k,data[k].dtype,dim)
-  v.long_name='frequencies of the antisymmetric westward Rossby waves -eddies'
+  v.long_name='frequencies of the antisymmetric westward Rossby waves - eddies'
 
   #   eastward - eddies:
   dim='max_zonal_wave_number','quarter_number_gravitical_modes','number_equivalent_heights'
+
   k='EAST_G_sy'
   v=nc.createVariable(k,data[k].dtype,dim)
   v.long_name='frequencies of the symmetric eastward gravity waves - eddies'
 
   k='EAST_G_asy'
   v=nc.createVariable(k,data[k].dtype,dim)
-  v.long_name='frequencies of the antisymmetric eastward gravity waves -eddies'
+  v.long_name='frequencies of the antisymmetric eastward gravity waves - eddies'
 
 
   #   westward - zonal mean:
@@ -257,15 +277,17 @@ def save_nc_bar(fname,data,**attrs):
 
   # dimensions:
   M,L,lat=data['HOUGH_UVZ'].shape[1:]
+  nLR=data['SIGMAS'].shape[1]
+
   nc.createDimension('components_uvz',3)              # components uvz
   nc.createDimension('max_zonal_wave_number',M)       # max zonal wave number (M)
-  nc.createDimension('number_meridional_modes',L)     # total number meridional modes (must be even!)
+  nc.createDimension('number_meridional_modes',L)     # total number meridional modes (L, must be even!)
   nc.createDimension('lat',lat)                       # n lats
-  nLR=data['SIGMAS'].shape[1]
   nc.createDimension('number_Rossby_modes',nLR)       # total number of (west) Rossby modes (must be even!)
 
 
-  #   hough:
+  # variables:
+  #   hough and hough to reconstr.:
   k='HOUGH_UVZ'
   dim='components_uvz','max_zonal_wave_number','number_meridional_modes','lat'
   v=nc.createVariable(k+'_real',dType,dim)
@@ -273,7 +295,6 @@ def save_nc_bar(fname,data,**attrs):
   v=nc.createVariable(k+'_imag',dType,dim)
   v.long_name='hough functions - eddies (imag)'
 
-  # hough to reconstr.:
   k='HOUGH_UVZ_2rec'
   v=nc.createVariable(k+'_real',dType,dim)
   v.long_name='hough functions for reconstruction - eddies (real)'
@@ -289,6 +310,7 @@ def save_nc_bar(fname,data,**attrs):
   v=nc.createVariable(k,dType,dim)
   v.long_name='hough functions for reconstruction - zonal mean'
 
+  #   sigmas:
   k='SIGMAS'
   dim='max_zonal_wave_number','number_Rossby_modes'
   v=nc.createVariable(k,dType,dim)
