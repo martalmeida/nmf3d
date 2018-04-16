@@ -170,7 +170,7 @@ nmf3d.calcs.ncshow(vfile)
        out_vs_ws0True.nc
     
     :: Global Attributes:
-       date           2018-04-16 15:55:08.224132                                          
+       date           2018-04-16 23:48:58.323216                                          
        ws0            True                                                                
        n_leg          57                                                                  
        platform       Linux-3.10.0-693.11.1.el7.x86_64-x86_64-with-centos-7.4.1708-Core   
@@ -346,7 +346,7 @@ nmf3d.calcs.ncshow(hfile_b,Lmax=40)
        out_hvf_M6_nLR8_nLG12_NEH5_dlat6linear_ws0False.nc
     
     :: Global Attributes:
-       date           2018-04-16 15:55:17.954609              
+       date           2018-04-16 23:49:08.031555              
        nk             5                                       
        platform       Linux-3.10.0-693.11.1.el7.x86_64-x86_64+
        environment    python                                  
@@ -534,7 +534,7 @@ nmf3d.calcs.ncshow(fsaveF)
        out_ws0_False_wnlk.nc
     
     :: Global Attributes:
-       date           2018-04-16 16:02:24.946966                                          
+       date           2018-04-16 23:49:28.769872                                          
        platform       Linux-3.10.0-693.11.1.el7.x86_64-x86_64-with-centos-7.4.1708-Core   
        environment    python                                                              
        version        3.6.4 |Anaconda, Inc.| (default, Jan 16 2018, 18:10:19) 
@@ -563,7 +563,7 @@ In this case both baroclinic and barotropic hvf files are needed.
 ```python
 vfile=vfileT
 hfile=hfile_bB # two files!
-w_nlk,w_0lk,fsaveF=nmf3d.wnlk.spectrum(vfile,hfile,data,label='out_ws0_True')
+w_nlk,w_0lk,fsaveT=nmf3d.wnlk.spectrum(vfile,hfile,data,label='out_ws0_True')
 ```
 
      - loading parameters from Hough functions file:
