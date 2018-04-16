@@ -214,6 +214,7 @@ def profile(files,**kargs):
   '''
 
   debug = kargs.get('debug',0)
+  quiet = kargs.get('quiet',0)
 
   vname = kargs.get('vname',None)
   xname = kargs.get('xname','longitude')
@@ -257,7 +258,7 @@ def profile(files,**kargs):
   # start the integration:
   u=np.zeros((nt,nz),'f')
   for k in range(nz):
-    print(' - level %d of %d'%(k,nz))
+    if not quiet: print(' - level %d of %d'%(k,nz))
     for it in range(nt):
       #if it%10==0: print('%d of %d'%(it,nt))
       v=nc.variables[vname][it,k]
