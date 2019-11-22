@@ -221,7 +221,7 @@ nmf3d.calcs.ncshow(vfileT,Lmax=50)
        out_vs_ws0True.nc
     
     :: Global Attributes:
-       date           2019-11-22 14:46:45.210682                        
+       date           2019-11-22 15:28:27.633799                        
        ws0            True                                              
        n_leg          57                                                
        platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-cent+
@@ -391,7 +391,7 @@ nmf3d.calcs.ncshow(hfileF)
        out_hvf_M6_nLR8_nLG12_NEH5_dlat6linear_ws0False.nc
     
     :: Global Attributes:
-       date           2019-11-22 14:46:48.971839                                       
+       date           2019-11-22 15:28:31.472624                                       
        platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-centos-7.6.1810-Core
        environment    python                                                           
        version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]               
@@ -578,7 +578,7 @@ nmf3d.calcs.ncshow(fsaveF)
        out_ws0_False_w_nlk.nc
     
     :: Global Attributes:
-       date           2019-11-22 14:47:37.056784                                       
+       date           2019-11-22 15:29:22.847531                                       
        platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-centos-7.6.1810-Core
        environment    python                                                           
        version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]               
@@ -647,6 +647,10 @@ pl.plot(v);
 
 
 #### 5.2 3-D spectrum of energy interactions
+
+
+```python
+'''
 data_i1={}
 data_i2={}
 data_j3={}
@@ -667,10 +671,17 @@ i_nlkF,ifsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_i,label='out_i_ws0_
             
 data_j=dict(J3=data_j3)
 j_nlkF,jfsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_j,label='out_j_ws0_False')
+''';
+```
+
 ### 6. Appendix
 ##### Matlab version
 
 The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of output filenames, the Matlab version also saves netcdf files, but saves/loads mat instead of npz.
+
+
+```python
+'''
 % adjust paths: ------------------------------------------------------
 d='SOME_PATH/nmf3d/'
 addpath([d 'nmf3d_mat']);
@@ -746,3 +757,5 @@ data_i.I2=data_i2;
 data_j=struct;
 data_j.J3=data_j3;
 [j_nlk,jfsave]=expansion_coeffs(vfileT,hfileT,data_j,'label','out_j_ws0_True');
+''';
+```
