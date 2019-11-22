@@ -1,7 +1,8 @@
 from . import calcs
 from . import vertical_structure
 from . import hough_functions
-from . import wnlk
+from . import expansion_coeffs
+from .version import __version__
 
 def __folders():
   import os
@@ -15,6 +16,7 @@ def doc():
   urldoc=url+'/tree/master/okean/doc/'
 
   import glob
+  import os
   files=glob.glob(os.path.join(docfolder,'*'))
   files.sort()
   if len(files)==1:

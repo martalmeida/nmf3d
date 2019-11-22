@@ -1,14 +1,14 @@
 function varargout=vertical_structure(Tprof,Plev,varargin)
 %  Solves the vertical structure equation, returning the vertical
-%  structure functions and equivalent heights
+%  structure functions and equivalent heights.
 %
 %  Tprof, reference temperature (mean vertical profile, K)
 %  Plev, corresponding pressure levels (Pa)
 %  varargin:
 %    ws0, If true (default false) the pressure vertical velocity  is zero at surface.
 %    n_leg, number of Legendre polynomials, length(Plev)+20 by default
-%    nk, n functions to keep (cannot exceed the number of pressure levels, the default)
-%    save, create file [True]
+%    nk, number of vertical structure functions to compute (cannot exceed the number of pressure levels, the default)
+%    save, create file [true]
 %    format, file format: [nc] or mat
 %    attrs, attributes to save [{}]
 %    label, start of the saved filename ['out']
@@ -60,9 +60,8 @@ Plev=double(Plev);
 J=n_leg;
 GL=2*J-1;  % number of Gaussian levels
 
-% Gaussian levels (i.e. points (Gp)) and Gaussian weights (Gw)
+% Gaussian levels (i.e. points, Gp) and Gaussian weights (Gw)
 [Gp,Gw] = lgwt(GL,-1,1);
-%  Gp=flipud(Gp);
 
 % Cubic spline interpolation of reference temperature from pressure to sigma levels
 Plev_s  = (Gp+1)*const.ps/2; % pressure levels that correspond to the chosen Gaussian sigma levels
@@ -144,11 +143,11 @@ function s=stability(Tref,Gp)
   % delta s:
   Ds = diff(log(pps));
 
-  % forward differences (1st order):
+  % Forward differences (1st order):
   dTref_dLn_pps(1) = (Tref(2)- Tref(1)) / Ds(1);
 
 
-  % Centred differences (2st order)
+  % Centred differences (2nd order)
   for k=2:length(Gp)-1
     dTref_dLn_pps(k) = (1/(Ds(k-1)*Ds(k)*(Ds(k-1)+Ds(k)))) .* (Ds(k-1)^2*Tref(k+1)-Ds(k)^2*Tref(k-1)-(Ds(k-1)^2-Ds(k)^2)*Tref(k));
   end
@@ -171,18 +170,14 @@ function [M,P_s]=calc_M(J,Gp,Gw,Gamma0,Tref1,ws0)
   GL=2*J-1;
 
   % Normalized Associated Legendre functions
-  %m = 0 % order
-  %uP_s  = zeros(GL,J); % Unnormalized
   P_s   = zeros(GL,J); % Normalized
   P_s1  = zeros(J,1);  % Normalized (at sigma=1)
 
-
   for j=1:J
+    aux = legendre(j-1,Gp,'norm');
     if j-1==0
-      aux = legendre(j-1,Gp,'norm');
       P_s(:,j)=aux';
     else
-      aux = legendre(j-1,Gp,'norm');
       P_s(:,j)=aux(1,:);
     end
   end
@@ -241,7 +236,7 @@ function fsave=save_out(data,ws0,n_leg,varargin)
   attrs.environment = 'matlab';
   attrs.version     = version;
 
-  fsave=sprintf('%s_vs_ws0%s.%s',label,string(ws0),format);
+  fsave=sprintf('%s_vs_ws0%s.%s',label,ws0,format);
 
   fprintf(1,'saving %s\n',fsave);
   if isequal(format,'mat')

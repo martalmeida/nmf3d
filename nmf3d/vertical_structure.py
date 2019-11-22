@@ -1,4 +1,4 @@
-from . import constants as const
+from . import calcs, constants as const
 from scipy.interpolate import splrep,splev
 import scipy.misc
 import scipy.linalg
@@ -7,100 +7,24 @@ import numpy as np
 
 dType='d'
 
-def stability(Tref,Gp):
-  '''
-  Static stability in the sigma system (eq. (A3) in Kasahara (1984))
-  Derivative, by finite differences, of reference temperature (Tref) with respect to logarithm of p/ps (dT0_dLn_pps).
-  '''
-
-  pps = (Gp+1)/2; # p/Ps
-  dTref_dLn_pps = np.zeros(Gp.size,dtype=Tref.dtype);
-
-  # delta s:
-  Ds = np.diff(np.log(pps))
-
-  # forward differences (1st order):
-  dTref_dLn_pps[0] = (Tref[1]- Tref[0]) / Ds[0];
-
-  # Centred differences (2st order)
-  for k in range(1,Gp.size-1):
-      dTref_dLn_pps[k] = (1/(Ds[k-1]*Ds[k]*(Ds[k-1]+Ds[k]))) * (Ds[k-1]**2*Tref[k+1]-Ds[k]**2*Tref[k-1]-(Ds[k-1]**2-Ds[k]**2)*Tref[k])
-
-  # Backward differences (1st order)
-  dTref_dLn_pps[-1] = (Tref[-1]-Tref[-2]) / Ds[-1]
-
-  # The static stability in the sigma system (Gamma0)
-  return  (const.Qsi*Tref)/(1+Gp)-0.5/pps*dTref_dLn_pps
-
-
-def calc_M(J,Gp,Gw,Gamma0,Tref1,ws0):
-  '''
-  Matrix Mij (Eq. (A12) in Kasahara (1984))
-
-  '''
-
-  GL=2*J-1
-
-  # Normalized Associated Legendre functions
-  m = 0 # order
-  uP_s  = np.zeros((GL,J),dtype=Gp.dtype) # Unnormalized
-  P_s   = np.zeros((GL,J),dtype=Gp.dtype) # Normalized
-  P_s1  = np.zeros(J,dtype=Gp.dtype)      # Normalized (at sigma=1)
-
-  # Looping over the degrees
-  for n in range(0,J):
-    n_m = scipy.misc.factorial(n-m)
-    nm  = scipy.misc.factorial(n+m)
-    # Looping over the gaussian points or levels (Gp)
-    for z in  range(0,GL):
-        [P0n,dP0n_dz] = scipy.special.lpmn(m, n, Gp[z])
-        uP_s[z,n]     = P0n[m,n]
-        P_s[z,n]      = (-1)**m * np.sqrt((n+0.5)*n_m/(nm)) * uP_s[z,n]
-
-  # Looping over the degrees
-  for n in range(0,J):
-    # Legendre polynomials at sigma=1
-    [P0n1,dP0n_dz1] = scipy.special.lpmn(m, n, 1.0)
-    n_m = scipy.misc.factorial(n-m)
-    nm  = scipy.misc.factorial(n+m)
-    P_s1[n]         = (-1)**m * np.sqrt((n+0.5)*n_m/(nm)) * P0n1[0,n]
-
-
-  # Derivative of Legendre polynomials with respect to sigma (d_P_ds)
-  d_P_ds = np.zeros((GL,J),dtype=Gp.dtype);
-  # The derivative of P_s(j=zero)=0 (all sigmas). Therefore, the index j of d_P_ds starts at j=1,
-  # where the derivative of P_s(one) (all sigmas) is stored, and so on.
-  for j in range(1,J):
-    d_P_ds[:,j] = j*Gp/(Gp**2-1) * P_s[:,j] - j/(Gp**2 - 1) * np.sqrt((2.*(j)+1)/(2.*(j)-1)) * P_s[:,j-1];
-
-
-  # Matrix Mij (Eq. (A12) in Kasahara (1984))
-  M  = np.zeros((J,J),dtype=Gp.dtype);   # Initializing matrix Mij
-  for i in range(0,J):
-    for j in range(0,J):
-      if ws0: # w=0 at surface
-        M[i,j] = const.T00 * (((Gp+1.0)/Gamma0*d_P_ds[:,i]*d_P_ds[:,j])*Gw).sum()
-      else:
-        M[i,j] = const.T00 * (((Gp+1.0)/Gamma0*d_P_ds[:,i]*d_P_ds[:,j])*Gw).sum() + const.T00 * (2.0/Tref1*P_s1[i]*P_s1[j]);
-
-  return M,P_s
-
-
 
 def vse(Tprof,Plev,**kargs):
   '''Solves the vertical structure equation, returning the vertical
-  structure functions and equivalent heights
+  structure functions and equivalent heights.
 
   Tprof, reference temperature (mean vertical profile, K)
   Plev, corresponding pressure levels (Pa)
   kargs:
-    ws0, If true (default false) the pressure vertical velocity  is zero at surface.
+    ws0, If True (default False) the pressure vertical velocity  is zero at surface.
     n_leg, number of Legendre polynomials, Plev.size+20 by default
-    nk, n functions to keep (cannot exceed the number of pressure levels, the default)
+    nk, number of vertical structure functions to compute (cannot exceed the number of pressure levels, the default)
     save, create file [True]
     format, file format: [nc] or npz
     attrs, attributes to save [{}]
     label, start of the saved filename ['out']
+
+  Output:
+    Gn, hk or Gn, hk and output filename if save is True
 
   Example:
     import numpy as np
@@ -138,9 +62,9 @@ def vse(Tprof,Plev,**kargs):
   J=n_leg
   GL=2*J-1 # number of Gaussian levels
 
-  # Gaussian levels (i.e. points (Gp)) and Gaussian weights (Gw)
+  # Gaussian levels (i.e. points, Gp) and Gaussian weights (Gw)
   Gp,Gw = scipy.special.orthogonal.p_roots(GL)
-  Gp=Gp[::-1] # flip Gp
+  Gp=Gp[::-1] # reverse Gp
 
   # Cubic spline interpolation of reference temperature from pressure to sigma levels
   Plev_s  = (Gp+1)*const.ps/2 # pressure levels that correspond to the chosen Gaussian sigma levels
@@ -195,6 +119,73 @@ def vse(Tprof,Plev,**kargs):
   else: return Gn[:nk],hk[:nk]
 
 
+def stability(Tref,Gp):
+  '''
+  Static stability in the sigma system (eq. (A3) in Kasahara (1984))
+  Derivative, by finite differences, of reference temperature (Tref) with respect to logarithm of p/ps (dT0_dLn_pps).
+  '''
+
+  pps = (Gp+1)/2; # p/Ps
+  dTref_dLn_pps = np.zeros(Gp.size,dtype=Tref.dtype);
+
+  # delta s:
+  Ds = np.diff(np.log(pps))
+
+  # Forward differences (1st order):
+  dTref_dLn_pps[0] = (Tref[1]- Tref[0]) / Ds[0];
+
+  # Centred differences (2nd order)
+  for k in range(1,Gp.size-1):
+      dTref_dLn_pps[k] = (1/(Ds[k-1]*Ds[k]*(Ds[k-1]+Ds[k]))) * (Ds[k-1]**2*Tref[k+1]-Ds[k]**2*Tref[k-1]-(Ds[k-1]**2-Ds[k]**2)*Tref[k])
+
+  # Backward differences (1st order)
+  dTref_dLn_pps[-1] = (Tref[-1]-Tref[-2]) / Ds[-1]
+
+  # The static stability in the sigma system (Gamma0)
+  return  (const.Qsi*Tref)/(1+Gp)-0.5/pps*dTref_dLn_pps
+
+
+def calc_M(J,Gp,Gw,Gamma0,Tref1,ws0):
+  '''
+  Matrix Mij (Eq. (A12) in Kasahara (1984))
+
+  '''
+
+  GL=2*J-1
+
+  # Normalized Associated Legendre functions
+  P_s   = np.zeros((GL,J),dtype=Gp.dtype) # Normalized
+  P_s1  = np.zeros(J,dtype=Gp.dtype)      # Normalized (at sigma=1)
+
+  for j in range(J):
+    aux = calcs.leg(j,Gp,True)
+    if j==0: P_s[:,j]=aux
+    else:    P_s[:,j]=aux[0]
+
+  # Legendre polynomials at sigma=1
+  for j in range(J):
+    P_s1[j] = calcs.leg(j,np.asarray([1.]),True).flat[0]
+
+  # Derivative of Legendre polynomials with respect to sigma (d_P_ds)
+  d_P_ds = np.zeros((GL,J),dtype=Gp.dtype)
+  # The derivative of P_s(j=zero)=0 (all sigmas). Therefore, the index j of d_P_ds starts at j=1,
+  # where the derivative of P_s(one) (all sigmas) is stored, and so on.
+  for j in range(1,J):
+    d_P_ds[:,j] = j*Gp/(Gp**2-1) * P_s[:,j] - j/(Gp**2 - 1) * np.sqrt((2.*(j)+1)/(2.*(j)-1)) * P_s[:,j-1];
+
+
+  # Matrix Mij (Eq. (A12) in Kasahara (1984))
+  M  = np.zeros((J,J),dtype=Gp.dtype);   # Initializing matrix Mij
+  for i in range(0,J):
+    for j in range(0,J):
+      if ws0: # w=0 at surface
+        M[i,j] = const.T00 * (((Gp+1.0)/Gamma0*d_P_ds[:,i]*d_P_ds[:,j])*Gw).sum()
+      else:
+        M[i,j] = const.T00 * (((Gp+1.0)/Gamma0*d_P_ds[:,i]*d_P_ds[:,j])*Gw).sum() + const.T00 * (2.0/Tref1*P_s1[i]*P_s1[j]);
+
+  return M,P_s
+
+
 def save_out(data,ws0,n_leg,**kargs):
   label=kargs.get('label','out')
   format=kargs.get('format','nc') # nc or npz
@@ -209,7 +200,7 @@ def save_out(data,ws0,n_leg,**kargs):
   import sys
   attrs['platform']      = platform.platform()
   attrs['environment']   = 'python'
-  attrs['version']       = sys.version
+  attrs['version']       = sys.version.replace('\n','')
   attrs['version_scipy'] = scipy.__version__
   attrs['version_numpy'] = np.__version__
 

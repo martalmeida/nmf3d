@@ -70,6 +70,7 @@ def ncshow(f,**kargs):
     l2=14 # min len for long_name
     l3= 7 # min len for units
     l4= 7 # min len for str(shape)
+    anyUnits=False
     for v in varnames:
       atn=list(nc.variables[v].ncattrs())
       atv=[getattr(nc.variables[v],i) for i in atn]
@@ -80,6 +81,7 @@ def ncshow(f,**kargs):
       if 'units' in atn:
         units=atv[atn.index('units')]
         l3=max(l3,len(units))
+        anyUnits=True
 
       l4=max(len(str(nc.variables[v].shape)),l4)
 
@@ -88,9 +90,15 @@ def ncshow(f,**kargs):
       l3=min(l3,Lmax)
       l4=min(l4,Lmax)
 
-    format='   %-'+str(l1)+'s | %-'+str(l2)+'s | %-'+str(l3)+'s | %-'+str(l4)+'s |'
-    format1='   %-'+str(l1)+'s   %-'+str(l2)+'s   %-'+str(l3)+'s   %-'+str(l4)+'s'
-    print(format1 % ('','long_name'.center(l2),'units'.center(l3),'shape'.center(l4)))
+    if anyUnits:
+      format ='   %-'+str(l1)+'s | %-'+str(l2)+'s | %-'+str(l3)+'s | %-'+str(l4)+'s |'
+      format1='   %-'+str(l1)+'s   %-'+str(l2)+'s   %-'+str(l3)+'s   %-'+str(l4)+'s'
+      print(format1 % ('','long_name'.center(l2),'units'.center(l3),'shape'.center(l4)))
+    else:
+      format ='   %-'+str(l1)+'s | %-'+str(l2)+'s | %-'+str(l4)+'s |'
+      format1='   %-'+str(l1)+'s   %-'+str(l2)+'s   %-'+str(l4)+'s'
+      print(format1 % ('','long_name'.center(l2),'shape'.center(l4)))
+
     for v in varnames:
       atn=list(nc.variables[v].ncattrs())
       atv=[getattr(nc.variables[v],i) for i in atn]
@@ -106,7 +114,10 @@ def ncshow(f,**kargs):
       shape=str(nc.variables[v].shape)
       if len(shape)>l4: shape=shape[:l4-1]+'+'
 
-      print(format % (v,longn,units,shape))
+      if anyUnits:
+        print(format % (v,longn,units,shape))
+      else:
+        print(format % (v,longn,shape))
 
   nc.close()
 
@@ -255,6 +266,12 @@ def profile(files,**kargs):
   nt=t.size
   nz=z.size
 
+  # there is a new netcdf4 warning in line v=nc.variables[vname][it,k]...
+  # let us ignore it for now
+  ignoreNpWarnings=True
+  if ignoreNpWarnings:
+    np.warnings.filterwarnings('ignore')
+
   # start the integration:
   u=np.zeros((nt,nz),'f')
   for k in range(nz):
@@ -329,4 +346,22 @@ def profile(files,**kargs):
   # simple time avg:
   u=u.mean(0)
 
+  if ignoreNpWarnings:
+    np.warnings.filterwarnings('default')
+
   return u,z
+
+
+def cosd(x):
+  res=np.cos(x*np.pi/180)
+  cond=np.mod(x,90)==0
+  i=np.mod(x//90,4).astype('i')
+  res[cond]=np.asarray([1,0,-1,0])[i][cond]
+  return res
+
+def sind(x):
+  res=np.sin(x*np.pi/180)
+  cond=np.mod(x,90)==0
+  i=np.mod(x//90,4).astype('i')
+  res[cond]=np.asarray([0,1,0,-1])[i][cond]
+  return res

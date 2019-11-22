@@ -1,6 +1,6 @@
 function out=hvf_barotropic(nLR,nLG,M,trunc,x)
 %  Compute the Hough vector functions as described in the paper of Swarztrauber and Kasahara (1985).
-%  Baroclinic mode; hk[0] can't be inf
+%  Limiting case of hk[0] = inf (The Haurwitz waves).
 %
 %  Part I: The frequencies and the Hough functions are computed for zonal wave number m = 0.
 %  Part II: The frequencies and the Hough functions are computed for zonal wave numbers m > 0.
@@ -19,14 +19,13 @@ L = nLR+2*nLG; % Total number of meridional modes used in the expansion (should 
 maxN = 3*N;
 
 % Dimensions --------------------
-% Arrays for the Hough functions
-HOUGH_0_UVZ      = zeros(3,L,length(x)); % Hough functions for n=0 (for projection studies)
-HOUGH_0_UVZ_2rec = zeros(3,L,length(x)); % Hough functions for n=0 (for reconstitutions studies)
+% Arrays fo the Hough functions
+HOUGH_0_UVZ = zeros(3,L,length(x)); % Hough functions for n=0
 
 
 disp('Part I');
 % PART I ----------------------------------------------------------
-% For zonal wave number n=0.
+% For zonal wave number m=0.
 
 % HOUGH VECTOR FUNCTIONS ============================================
 %  Normalized Associated Legendre Functions (Pm_n) ------------------
@@ -77,12 +76,11 @@ p0_n1MAT = repmat(p0_n1,[1 length(x)]);
 % The HOUGH vector functions are computed using eq. (3.22) in Swarztrauber and Kasahara (1985)
 
 % Rotational (ROSSBY) MODES
-HOUGH_0_UVZ(1,2*nLG+1:end,:) = - P1_n(2:nLR+1,:);   % Eq. (5.1)
+HOUGH_0_UVZ(1,2*nLG+1:end,:) = - P1_n(1:nLR,:);   % Eq. (5.1)
 
 % Eq. 5.13
-HOUGH_0_UVZ_2rec(1,2*nLG+1:end,:) =  - P1_n(2:nLR+1,:);
-HOUGH_0_UVZ_2rec(3,2*nLG+1:end,:) =  (2*const.Er*const.Om)/sqrt(const.g) * (p0_nMAT(1:nLR,:).* P0_nm1(2:nLR+1,:) + p0_n1MAT(1:nLR,:).*P0_nM1(2:nLR+1,:));
-% Note: The third component of "HOUGH_0_UVZ_2rec" was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
+HOUGH_0_UVZ(3,2*nLG+1:end,:) =  (2*const.Er*const.Om)/sqrt(const.g) * (p0_nMAT(1:nLR,:).* P0_nm1(1:nLR,:) + p0_n1MAT(1:nLR,:).*P0_nM1(1:nLR,:));
+% Note: The third component was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
 % that used with dimensionalised variables, by setting artificially the barotropic equivalent height (which is infinity) to one.
 
 
@@ -100,8 +98,8 @@ disp('Part II');
 
 % Dimensions --------------------
 % Arrays for the Hough functions
-HOUGH_UVZ      = zeros(3,M,L,length(x)); % (comlex) Hough functions for m>0 (for projection studies)
-HOUGH_UVZ_2rec = zeros(3,M,L,length(x)); % (complex) Hough functions for m>0 (for reconstitutions studies)
+HOUGH_UVZ = zeros(3,M,L,length(x)); % (comlex) Hough functions for m>0
+
 
 for m=1:M  % Start the zonal wave numbers
   % HOUGH VECTOR FUNCTIONS
@@ -187,11 +185,9 @@ for m=1:M  % Start the zonal wave numbers
   % Rotational (ROSSBY) MODES --------------------------------------
   HOUGH_UVZ(1,m,2*nLG+1:end,:) = y2m_n(1,1:nLR,:);
   HOUGH_UVZ(2,m,2*nLG+1:end,:) = y2m_n(2,1:nLR,:);
+  HOUGH_UVZ(3,m,2*nLG+1:end,:) = (2*const.Er*const.Om)/sqrt(const.g) * (pm_n(1:nLR,:).*squeeze(y3m_nm1(3,1:nLR,:)) + pm_n1(1:nLR,:).*squeeze(y3m_nM1(3,1:nLR,:)));
 
-  HOUGH_UVZ_2rec(1,m,2*nLG+1:end,:) = y2m_n(1,1:nLR,:);
-  HOUGH_UVZ_2rec(2,m,2*nLG+1:end,:) = y2m_n(2,1:nLR,:);
-  HOUGH_UVZ_2rec(3,m,2*nLG+1:end,:) = (2*const.Er*const.Om)/sqrt(const.g) * (pm_n(1:nLR,:).*squeeze(y3m_nm1(3,1:nLR,:)) + pm_n1(1:nLR,:).*squeeze(y3m_nM1(3,1:nLR,:)));
-  % Note: The third component of "HOUGH_UVZ_2rec" was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
+  % Note: The third component was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
   % that used with dimensionalised variables, by setting artificially the barotropic equivalent height (which is infinity) to one.
 
   % GRAVITY MODES
@@ -216,7 +212,5 @@ out=struct;
 out.HOUGH_UVZ        = HOUGH_UVZ;
 out.HOUGH_0_UVZ      = HOUGH_0_UVZ;
 out.SIGMAS           = SIGMAS;
-out.HOUGH_UVZ_2rec   = HOUGH_UVZ_2rec;
-out.HOUGH_0_UVZ_2rec = HOUGH_0_UVZ_2rec;
 
 end

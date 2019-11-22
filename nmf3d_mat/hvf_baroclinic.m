@@ -1,6 +1,6 @@
 function [out,truncation_order,x]=hvf_baroclinic(hk,M,nLR,nLG,latType,dlat)
 %  Compute the Hough vector functions as described in the paper of Swarztrauber and Kasahara (1985).
-%  Baroclinic mode. hk[0] can't be inf
+%  Baroclinic mode. hk(1) can't be inf.
 %
 %  Part I: The frequencies and the Hough functions are computed for zonal wave number m = 0.
 %  Part II: The frequencies and the Hough functions are computed for zonal wave numbers m > 0.
@@ -13,7 +13,7 @@ disp('- HVF baroclinic -');
 
 L = nLR + 2*nLG; % Total number of meridional modes used in the expansion (should be even)
 
-% The equivalent heights (the first nk)
+% The equivalent heights
 NEH=length(hk);
 
 % Dimensionless constant (gamma) computed from (2.8) of Swarztrauber and Kasahara (1985):
@@ -26,22 +26,23 @@ Ep = Ga.^-2;
 
 % Truncation order for the expansion in terms of the spherical vector harmonics
 N = max([20,L,ceil(max(sqrt(Ep)))]); % why 20? see Swarztrauber and A. Kasahara (1985), pg 481.
-truncation_order=N; % returned cos is needed for the barotropic if ws0 is True
+truncation_order=N; % returned because is needed for the barotropic if ws0 is True
 
 % Total number of eigenvalues/eigenvectors for matrices A and B.
 maxN = 3*N;
 
-% Latitude points in a 1.5 degree grid (ERA-Interim)
+% Latitude points
 if isequal(latType,'linear')
   LAT = -90.:dlat:90.;
-  x   = sin(LAT*pi/180.);
+  %x   = sin(LAT*pi/180.);
+  x   = sind(LAT);
 elseif isequal(latType,'gaussian')
   [x,w] = lgwt(N,-1,1);
 end
 
 disp('Part I');
 % PART I ----------------------------------------------------------
-% For zonal wave number n=0, the frequencies and associated horizontal
+% For zonal wave number m=0, the frequencies and associated horizontal
 % stucture functions are computed as the eigenvalues/eigenvectors of
 % matrices C, D, E and F given in Swarztrauber and Kasahara (1985).
 % Since the frequencies are not determined in triplets, matrices
@@ -177,10 +178,10 @@ disp('  - Coeffs An, Bn, Cn');
 % coefficients Bn and Cn are obtained from An using eqs. (4.4) and (4.5)
 
 % Arrays for the frequencies (eigenvalues)
-%%%% WEST_G_0_sy  = zeros(nLG//2,NEH);
-%%%% WEST_G_0_asy = zeros(nLG//2,NEH);
-%%%% EAST_G_0_sy  = zeros(nLG//2,NEH);
-%%%% EAST_G_0_asy = zeros(nLG//2,NEH);
+%WEST_G_0_sy  = zeros(nLG/2,NEH);
+%WEST_G_0_asy = zeros(nLG/2,NEH);
+%EAST_G_0_sy  = zeros(nLG/2,NEH);
+%EAST_G_0_asy = zeros(nLG/2,NEH);
 
 % Arrays for the coefficients (eigenvectors)
 % The coefficients are stored in columns as:
@@ -191,8 +192,8 @@ ABC_WG_0_asy = zeros(maxN,nLG/2,NEH);
 ABC_EG_0_sy  = zeros(maxN,nLG/2,NEH);
 ABC_EG_0_asy = zeros(maxN,nLG/2,NEH);
 
-%%%% An_G_0_sy    = zeros(N,nLG//2,NEH);
-%%%% An_G_0_asy   = zeros(N,nLG//2,NEH);
+% An_G_0_sy    = zeros(N,nLG/2,NEH);
+% An_G_0_asy   = zeros(N,nLG/2,NEH);
 Bn_G_0_sy    = zeros(N,nLG/2,NEH);
 Bn_G_0_asy   = zeros(N,nLG/2,NEH);
 Cn_G_0_sy    = zeros(N,nLG/2,NEH);
@@ -201,9 +202,10 @@ Cn_G_0_asy   = zeros(N,nLG/2,NEH);
 % Frequencies (eigenvalues)
 WEST_G_0_sy  = -S_C(1:nLG/2,:);
 WEST_G_0_asy = -S_D(1:nLG/2,:);
-%
+
 EAST_G_0_sy  =  S_C(1:nLG/2,:);
 EAST_G_0_asy =  S_D(1:nLG/2,:);
+
 
 % Coefficients An (eigenvectors)
 An_G_0_sy  = U_C(:,1:nLG/2,:);  % symmetric subsystem -> [A0, A2, A4, ... , A2N-2] <- from matrix C
@@ -232,7 +234,6 @@ end
 % Bn => Eq. (4.4) in Swarztrauber and Kasahara (1985)
 % Last Bn for the symmetric subsystem must be computed from eq. (4.3)
 for n=1:N-1
-%%%%%%%%%%%%%%%%%%%%%%%%%%  for l=1:nLG/2
   for l=2:nLG/2 % starts at 2 to avoid division by zero warning, see above
     % symmetric subsystem -> (B1, B3, B5, ... ) <- from matrix C
     Bn_G_0_sy(n,l,:) = (p_n(2*n-1).*squeeze(An_G_0_sy(n,l,:))'+p_n(2*n).*squeeze(An_G_0_sy(n+1,l,:))')./EAST_G_0_sy(l,:);
@@ -313,7 +314,7 @@ An_R_0_sy    = zeros(N+1,nLR/2+1,NEH);
 auxBn_R_0_sy = zeros(N+1,nLR/2+1,NEH);
 Bn_R_0_sy    = zeros(N+1,nLR/2+1,NEH);
 Cn_R_0_sy    = zeros(N+1,nLR/2+1,NEH);
-%%%Bn_til_0_sy  = zeros(N+1,nLR/2+1,NEH); % complex
+%Bn_til_0_sy  = zeros(N+1,nLR/2+1,NEH); % complex
 Bn_til_0_sy  = U_E(:,1:nLR/2+1,:);  % symmetric subsystem --> [Bn_til[-1], Bn_til[1], Bn_til[3], ... ] <-- matrix E
 
 ABC_WR_0_asy  = zeros(maxN,nLR/2,NEH);
@@ -321,7 +322,7 @@ An_R_0_asy    = zeros(N,nLR/2,NEH);
 auxBn_R_0_asy = zeros(N,nLR/2,NEH);
 Bn_R_0_asy    = zeros(N,nLR/2,NEH);
 Cn_R_0_asy    = zeros(N,nLR/2,NEH);
-%%%Bn_til_0_asy  = zeros(N,nLR/2,NEH);
+%Bn_til_0_asy  = zeros(N,nLR/2,NEH);
 Bn_til_0_asy = U_F(:,1:nLR/2,:); % antisymmetric subsystem --> [ Bn_til[2], Bn_til[4], Bn_til[6], ... ] <-- matrix F
 
 
@@ -409,7 +410,6 @@ for la=1:nLG/2
   for nh=1:NEH
     NormaWG_sy(la,nh)  = norm(squeeze(ABC_WG_0_sy(:,la,nh)));
     NormaWG_asy(la,nh) = norm(squeeze(ABC_WG_0_asy(:,la,nh)));
-
     NormaEG_sy(la,nh)  = norm(squeeze(ABC_EG_0_sy(:,la,nh)));
     NormaEG_asy(la,nh) = norm(squeeze(ABC_EG_0_asy(:,la,nh)));
   end
@@ -608,7 +608,6 @@ WEST_G_sy  = zeros(M,nLG/2,NEH);
 WEST_G_asy = zeros(M,nLG/2,NEH);
 EAST_G_sy  = zeros(M,nLG/2,NEH);
 EAST_G_asy = zeros(M,nLG/2,NEH);
-
 WEST_R_sy  = zeros(M,nLR/2,NEH);
 WEST_R_asy = zeros(M,nLR/2,NEH);
 
@@ -620,7 +619,6 @@ ABC_WG_sy  = zeros(M,maxN,nLG/2,NEH);
 ABC_WG_asy = zeros(M,maxN,nLG/2,NEH);
 ABC_EG_sy  = zeros(M,maxN,nLG/2,NEH);
 ABC_EG_asy = zeros(M,maxN,nLG/2,NEH);
-
 ABC_WR_sy  = zeros(M,maxN,nLR/2,NEH);
 ABC_WR_asy = zeros(M,maxN,nLR/2,NEH);
 
@@ -732,12 +730,13 @@ for m=1:M
   % Eastward Gravity -----> (highest third).
 
   % Gravity modes
-  for la=1:round(nLG/2)
+  for la=1:nLG/2
     % The frequencies (eigenvalues)
     WEST_G_sy(m,la,:)    = S_A(N+1-la,:);
     WEST_G_asy(m,la,:)   = S_B(N+1-la,:);
     EAST_G_sy(m,la,:)    = S_A(2*N+la,:);
     EAST_G_asy(m,la,:)   = S_B(2*N+la,:);
+
     % The coefficients A, B and C (eigenvectors)
     ABC_WG_sy(m,:,la,:)  = U_A(:,N+1-la,:);
     ABC_WG_asy(m,:,la,:) = U_B(:,N+1-la,:);
@@ -746,10 +745,11 @@ for m=1:M
   end
 
   % Rossby modes
-  for la=1:round(nLR/2)
+  for la=1:nLR/2
     % The frequencies (eigenvalues)
     WEST_R_asy(m,la,:)   = S_B(N+la,:);
     WEST_R_sy(m,la,:)    = S_A(N+la,:);
+
     % The coefficients A, B and C (eigenvectors)
     ABC_WR_asy(m,:,la,:) = U_B(:,N+la,:);
     ABC_WR_sy(m,:,la,:)  = U_A(:,N+la,:);
@@ -890,36 +890,43 @@ end  % End the zonal wave numbers
 disp('End of part II (zonal wave numbers m>0)');
 
 % The first symmetric (lowest order) eastward gravity mode is eigenvector of matrix E
-WEST_R_0_sy         = Sa_E(2:nLR/2+1,:);
+WEST_R_0_sy           = Sa_E(2:nLR/2+1,:);
 
 WEST_R_0_asy(2:end,:) = WEST_R_0_asy(1:end-1,:);
 WEST_R_0_asy(1,:)     = S_C(1,:);
 
 EAST_G_0_sy(1,:)      = Sa_E(1,:);
 
-
 % end of calculations
 
-out=struct;
-out.HOUGH_UVZ    = HOUGH_UVZ;
-out.HOUGH_0_UVZ  = HOUGH_0_UVZ;
-% westward - eddies:
-out.WEST_G_sy    = WEST_G_sy;
-out.WEST_G_asy   = WEST_G_asy;
-out.WEST_R_sy    = WEST_R_sy;
-out.WEST_R_asy   = WEST_R_asy;
-% eastward - eddies:
-out.EAST_G_sy    = EAST_G_sy;
-out.EAST_G_asy   = EAST_G_asy;
-% westward - zonal mean:
-out.WEST_G_0_sy  = WEST_G_0_sy;
-out.WEST_G_0_asy = WEST_G_0_asy;
-out.WEST_R_0_sy  = WEST_R_0_sy;
-out.WEST_R_0_asy = WEST_R_0_asy;
-% eastward - zonal mean:
-out.EAST_G_0_sy  = EAST_G_0_sy;
-out.EAST_G_0_asy = EAST_G_0_asy;
+% concatenate frequencies (eigenvalues):
+% part 1 (zonal mean):
+FREQS_0=zeros(L,NEH);
+% Gravity modes
+FREQS_0(1:2:nLG,:)       = WEST_G_0_sy;
+FREQS_0(2:2:nLG,:)       = WEST_G_0_asy;
+FREQS_0(nLG+1:2:2*nLG,:) = EAST_G_0_sy;
+FREQS_0(nLG+2:2:2*nLG,:) = EAST_G_0_asy;
+% Rossby modes
+FREQS_0(2*nLG+1:2:L,:) = WEST_R_0_asy;
+FREQS_0(2*nLG+2:2:L,:) = WEST_R_0_sy;
 
+% part 2 (eddies):
+FREQS_m = zeros(M,L,NEH);
+% Gravity modes
+FREQS_m(:,1:2:nLG,:)       = WEST_G_sy;
+FREQS_m(:,2:2:nLG,:)       = WEST_G_asy;
+FREQS_m(:,nLG+1:2:2*nLG,:) = EAST_G_sy;
+FREQS_m(:,nLG+2:2:2*nLG,:) = EAST_G_asy;
+% Rossby modes
+FREQS_m(:,2*nLG+1:2:L,:) = WEST_R_asy;
+FREQS_m(:,2*nLG+2:2:L,:) = WEST_R_sy;
+
+out=struct;
+out.HOUGH_UVZ   = HOUGH_UVZ;
+out.HOUGH_0_UVZ = HOUGH_0_UVZ;
+out.FREQS_0     = FREQS_0;
+out.FREQS_m     = FREQS_m;
 end
 
 

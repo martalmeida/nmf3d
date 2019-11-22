@@ -8,7 +8,7 @@ cType=np.complex128
 def hvf_bar(nLR,nLG,M,trunc,x):
   '''
   Compute the Hough vector functions as described in the paper of Swarztrauber and Kasahara (1985).
-  This is for the limiting case of hk[0] = inf (The Haurwitz waves)
+  Limiting case of hk[0] = inf (The Haurwitz waves).
 
   Part I: The frequencies and the Hough functions are computed for zonal wave number m = 0.
   Part II: The frequencies and the Hough functions are computed for zonal wave numbers m > 0.
@@ -26,14 +26,13 @@ def hvf_bar(nLR,nLG,M,trunc,x):
   maxN = 3*N
 
   # Dimensions --------------------
-  # Arrays for the Hough functions
-  HOUGH_0_UVZ      = np.zeros((3,L,len(x)),dtype=dType) # Hough functions for n=0 (for projection studies)
-  HOUGH_0_UVZ_2rec = np.zeros((3,L,len(x)),dtype=dType) # Hough functions for n=0 (for reconstitutions studies)
+  # Array for the Hough functions
+  HOUGH_0_UVZ = np.zeros((3,L,len(x)),dtype=dType) # Hough functions for n=0 
 
 
   print('Part I')
   # PART I ----------------------------------------------------------
-  # For zonal wave number n=0.
+  # For zonal wave number m=0.
 
   # HOUGH VECTOR FUNCTIONS ============================================
   #  Normalized Associated Legendre Functions (Pm_n) ------------------
@@ -79,12 +78,11 @@ def hvf_bar(nLR,nLG,M,trunc,x):
   # The HOUGH vector functions are computed using eq. (3.22) in Swarztrauber and Kasahara (1985)
 
   # Rotational (ROSSBY) MODES
-  HOUGH_0_UVZ[0,2*nLG+1-1:] = - P1_n[1:nLR+1]   # Eq. (5.1)
+  HOUGH_0_UVZ[0,2*nLG+1-1:] = - P1_n[:nLR]   # Eq. (5.1)
 
   # Eq. (5.13)
-  HOUGH_0_UVZ_2rec[1-1,2*nLG+1-1:] =  - P1_n[1:nLR+1]
-  HOUGH_0_UVZ_2rec[3-1,2*nLG+1-1:] =  (2*const.Er*const.Om)/np.sqrt(const.g) * (p0_nMAT[:nLR]* P0_nm1[1:nLR+1] + p0_n1MAT[:nLR]*P0_nM1[1:nLR+1])
-  # Note: The third component of "HOUGH_0_UVZ_2rec" was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
+  HOUGH_0_UVZ[3-1,2*nLG+1-1:] =  (2*const.Er*const.Om)/np.sqrt(const.g) * (p0_nMAT[:nLR]* P0_nm1[:nLR] + p0_n1MAT[:nLR]*P0_nM1[:nLR])
+  # Note: The third component was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
   # that used with dimensionalised variables, by setting artificially the barotropic equivalent height (which is infinity) to one.
 
 
@@ -102,8 +100,7 @@ def hvf_bar(nLR,nLG,M,trunc,x):
 
   # Dimensions --------------------
   # Arrays for the Hough functions
-  HOUGH_UVZ      = np.zeros((3,M,L,x.size),dtype=cType) # Hough functions for m>0 (for projection studies)
-  HOUGH_UVZ_2rec = np.zeros((3,M,L,x.size),dtype=cType) # Hough functions for m>0 (for reconstitutions studies)
+  HOUGH_UVZ      = np.zeros((3,M,L,x.size),dtype=cType) # Hough functions for m>0
 
   for m in range(1,M+1):  # Start the zonal wave numbers
     # HOUGH VECTOR FUNCTIONS
@@ -182,11 +179,9 @@ def hvf_bar(nLR,nLG,M,trunc,x):
     # Rotational (ROSSBY) MODES --------------------------------------
     HOUGH_UVZ[0,m-1,2*nLG+1-1:] = y2m_n[0,:nLR]
     HOUGH_UVZ[1,m-1,2*nLG+1-1:] = y2m_n[1,:nLR]
+    HOUGH_UVZ[2,m-1,2*nLG+1-1:] = (2*const.Er*const.Om)/np.sqrt(const.g) * (pm_n[:nLR]*y3m_nm1[2,:nLR] + pm_n1[:nLR]*y3m_nM1[2,:nLR])
 
-    HOUGH_UVZ_2rec[0,m-1,2*nLG+1-1:] = y2m_n[0,:nLR]
-    HOUGH_UVZ_2rec[1,m-1,2*nLG+1-1:] = y2m_n[1,:nLR]
-    HOUGH_UVZ_2rec[2,m-1,2*nLG+1-1:] = (2*const.Er*const.Om)/np.sqrt(const.g) * (pm_n[:nLR]*y3m_nm1[2,:nLR] + pm_n1[:nLR]*y3m_nM1[2,:nLR])
-    # Note: The third component of "HOUGH_UVZ_2rec" was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
+    # Note: The third component was multiplied by sqrt(g) in order to use the same algorithm in the reconstruction as
     # that used with dimensionalised variables, by setting artificially the barotropic equivalent height (which is infinity) to one.
 
     # GRAVITY MODES
@@ -207,7 +202,6 @@ def hvf_bar(nLR,nLG,M,trunc,x):
   print('End of part II (zonal wave numbers m>0)')
 
 
-  out=dict(HOUGH_UVZ=HOUGH_UVZ,HOUGH_0_UVZ=HOUGH_0_UVZ,SIGMAS=SIGMAS,
-           HOUGH_UVZ_2rec=HOUGH_UVZ_2rec,HOUGH_0_UVZ_2rec=HOUGH_0_UVZ_2rec)
+  out=dict(HOUGH_UVZ=HOUGH_UVZ,HOUGH_0_UVZ=HOUGH_0_UVZ,SIGMAS=SIGMAS)
 
   return out

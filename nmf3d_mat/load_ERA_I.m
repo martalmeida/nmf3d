@@ -6,18 +6,18 @@ res.('u')=load_ERA_I_once(fu);
 fprintf(1,'loading v : %s\n',fv);
 res.('v')=load_ERA_I_once(fv);
 fprintf(1,'loading z : %s\n',fz);
-res.('z')=load_ERA_I_once(fz,fzref,height);
+res.('z')=load_ERA_I_once(fz,'fzref',fzref,'height',height);
 end
 
 function res=load_ERA_I_once(f,varargin)
   %
 
-  fref='';
+  fzref='';
   height=0;
 
   for i=1:length(varargin)
-    if isequal(varargin{i},'fref')
-      fref=varargin{i+1};
+    if isequal(varargin{i},'fzref')
+      fzref=varargin{i+1};
     elseif isequal(varargin{i},'height')
       height=varargin{i+1};
     end
@@ -43,9 +43,14 @@ function res=load_ERA_I_once(f,varargin)
   v=v(:,:,end:-1:1,:);
 
   % subtracting reference:
-  if fref
-    q=load(fref);
-    q=q(1,:);
+  if fzref
+    q=load(fzref);
+    [c,n,ext]=fileparts(fzref);
+    if isequal(ext,'.mat')
+      q=q.phi0;
+    else
+      q=q(1,:);
+    end
     fprintf(1,'    - subtracting reference\n');
     for i=1:length(P)
       v(:,i,:,:)=v(:,i,:,:)-q(i);
