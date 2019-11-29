@@ -221,7 +221,7 @@ nmf3d.calcs.ncshow(vfileT,Lmax=50)
        out_vs_ws0True.nc
     
     :: Global Attributes:
-       date           2019-11-22 15:28:27.633799                        
+       date           2019-11-29 16:55:38.963091                        
        ws0            True                                              
        n_leg          57                                                
        platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-cent+
@@ -340,7 +340,7 @@ hvf_dataT,hfileT=nmf3d.hough_functions.hvf(hk[:nk],M=6,nLR=8,nLG=6,dlat=6)
     saving out_hvf_M6_nLR8_nLG12_NEH5_dlat6linear_ws0True.nc
 
 
-Note that the baroclinic and barotropic (when hk[0] is infinite, i.e., ws0 is True in the computation of the vertical structure) modes are stored together. Example without barotropic mode:
+Example with ws0 False:
 
 
 ```python
@@ -391,7 +391,7 @@ nmf3d.calcs.ncshow(hfileF)
        out_hvf_M6_nLR8_nLG12_NEH5_dlat6linear_ws0False.nc
     
     :: Global Attributes:
-       date           2019-11-22 15:28:31.472624                                       
+       date           2019-11-29 16:55:42.752146                                       
        platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-centos-7.6.1810-Core
        environment    python                                                           
        version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]               
@@ -418,8 +418,7 @@ nmf3d.calcs.ncshow(hfileF)
 Vertical, Fourier and Hough transforms of:
 
  - zonal wind (u), meridional wind (v) and geopotential (z) perturbation (from the
-      reference  geopotential), used for the the 3-D spectrum of total energy
-      W_nlk
+      reference  geopotential), used for the 3-D spectrum of total energy
       
 
  - I1, I2 and J3, used for the 3-D spectrum of energy interactions (kinetic and available pontential energy)
@@ -471,7 +470,7 @@ data_v['v']=nc.variables['var132'][:][:,:,::-1,:].astype('d')
 nc.close()
 ```
 
-The geopotential is a bit more complex as the reference profile must be subtracted. The profile can be obtained following step 1. So let us do this first:
+For geopotential the reference profile must be subtracted. The profile can be obtained following step 1. So let us do this first:
 
 
 ```python
@@ -495,7 +494,7 @@ pl.plot(z_,zlev_,'.');
 ![png](doc/output_28_0.png)
 
 
-Now let us load the geopotential subtracting the reference. Note that some datasets provide not the geopotential but the geopotential height. In such case it must be divided by *g*.
+Now let us load the geopotential subtracting the reference. Note that some datasets provide not the geopotential but the geopotential height. In such cases it must be divided by *g*.
 
 
 ```python
@@ -578,7 +577,7 @@ nmf3d.calcs.ncshow(fsaveF)
        out_ws0_False_w_nlk.nc
     
     :: Global Attributes:
-       date           2019-11-22 15:29:22.847531                                       
+       date           2019-11-29 16:56:32.031238                                       
        platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-centos-7.6.1810-Core
        environment    python                                                           
        version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]               
@@ -639,7 +638,10 @@ for i in range(nk):
     En[i]=1/4*1e5*hk[i]*(w_nlk[i,1:]*np.conj(w_nlk[i,1:])).real
 
 v=En.mean(3).sum(2).sum(0)
-pl.plot(v);
+x=range(1,v.size+1)
+pl.plot(x,v)
+pl.xlabel('Zonal wave number')
+pl.ylabel('Energy (J m$^{-2}$)');
 ```
 
 
@@ -648,6 +650,8 @@ pl.plot(v);
 
 #### 5.2 3-D spectrum of energy interactions
 
+In thsi case, the user needs to calculate I1, I2 and J3. We provide here just an example, considering these terms weer previously computed and stored in the files I1.npz, I2.npz and J3.npz:
+
 
 ```python
 '''
@@ -655,12 +659,19 @@ data_i1={}
 data_i2={}
 data_j3={}
 
-P=...
-lon=...
-lat=...
-I1=...
-I2=...
-J3=...
+# assuming the coefficients were calculated and stored in the files
+# I1.npz, I2.npz and J3.npz:
+
+a=load('I1.npz')
+b=load('I2.npz')
+c=load('J3.npz')
+
+P=a['P']
+lon=a['lon']
+lat=a['lat']
+I1=a['I1']
+I2=b['I2']
+J3=c['J3']
 
 data_i1=dict(P=P,lon=lon,lat=lat,v=I1)
 data_i2=dict(P=P,lon=lon,lat=lat,v=I2)
@@ -735,19 +746,19 @@ data_i1=struct;
 data_i1.lon=lon;
 data_i1.lat=lat;
 data_i1.P=P;
-data_i1.v=...
+data_i1.v=load('I1.mat');
 
 data_i2=struct;
 data_i2.lon=lon;
 data_i2.lat=lat;
 data_i2.P=P;
-data_i2.v=...
+data_i2.v=load('I2.mat');
 
 data_j3=struct;
 data_j3.lon=lon;
 data_j3.lat=lat;
 data_j3.P=P;
-data_j3.v=...
+data_j3.v=load('J3.mat');
 
 data_i=struct;
 data_i.I1=data_i1;

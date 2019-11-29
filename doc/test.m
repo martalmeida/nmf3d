@@ -51,19 +51,19 @@ data_i1=struct;
 data_i1.lon=lon;
 data_i1.lat=lat;
 data_i1.P=P;
-data_i1.v=...
+data_i1.v=load('I1.mat');
 
 data_i2=struct;
 data_i2.lon=lon;
 data_i2.lat=lat;
 data_i2.P=P;
-data_i2.v=...
+data_i2.v=load('I2.mat');
 
 data_j3=struct;
 data_j3.lon=lon;
 data_j3.lat=lat;
 data_j3.P=P;
-data_j3.v=...
+data_j3.v=load('J3.mat');
 
 data_i=struct;
 data_i.I1=data_i1;
