@@ -688,7 +688,7 @@ j_nlkF,jfsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_j,label='out_j_ws0_
 ### 6. Appendix
 ##### Matlab version
 
-The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of input/output, the Matlab version also deals with netcdf files, as well as its native format (mat instead of npz.
+The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of input/output, the Matlab version also deals with netcdf files, as well as its native format (mat instead of npz).
 
 
 ```python
