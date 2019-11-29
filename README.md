@@ -650,7 +650,7 @@ pl.ylabel('Energy (J m$^{-2}$)');
 
 #### 5.2 3-D spectrum of energy interactions
 
-In thsi case, the user needs to calculate I1, I2 and J3. We provide here just an example, considering these terms weer previously computed and stored in the files I1.npz, I2.npz and J3.npz:
+In this case, the user needs to calculate I1, I2 and J3. We provide here just an example, considering these terms were previously computed and stored in the files I1.npz, I2.npz and J3.npz:
 
 
 ```python
@@ -688,7 +688,7 @@ j_nlkF,jfsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_j,label='out_j_ws0_
 ### 6. Appendix
 ##### Matlab version
 
-The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of output filenames, the Matlab version also saves netcdf files, but saves/loads mat instead of npz.
+The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of input/output, the Matlab version also deals with netcdf files, as well as its native format (mat instead of npz.
 
 
 ```python
