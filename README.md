@@ -662,9 +662,9 @@ data_j3={}
 # assuming the coefficients were calculated and stored in the files
 # I1.npz, I2.npz and J3.npz:
 
-a=load('I1.npz')
-b=load('I2.npz')
-c=load('J3.npz')
+a=np.load('I1.npz')
+b=np.load('I2.npz')
+c=np.load('J3.npz')
 
 P=a['P']
 lon=a['lon']
