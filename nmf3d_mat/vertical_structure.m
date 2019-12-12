@@ -105,6 +105,9 @@ nkMax=length(Plev);
 Gn=flipud(Gn_all);
 Gn=Gn(1:nkMax,:);
 
+% normalize:
+Gn=Gn*sqrt(2);
+
 % The equivalent heights re-ordered
 cond=S==0;
 S(cond)=1;

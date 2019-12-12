@@ -106,6 +106,9 @@ def vse(Tprof,Plev,**kargs):
   nkMax=Plev.size
   Gn=Gn_all[::-1][:nkMax]
 
+  # normalize:
+  Gn*=2**.5
+
   # The equivalent heights re-ordered
   cond=S==0
   S[cond]=1
