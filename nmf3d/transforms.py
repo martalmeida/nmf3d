@@ -94,9 +94,9 @@ def vertical(u,hk,nk,Gn,p_old,p_new,dataLabel,**kargs):
     Aux = 0
     for s in range(GL):
       if dataLabel=='J3':
-        Aux+=-us[:,:,:,s] * d_Gn_dpnew[kk,s] * Gw[s]
+        Aux+=-0.5*us[:,:,:,s]*d_Gn_dpnew[kk,s]*Gw[s]
       else:
-        Aux+=us[:,:,:,s] * Gn[kk,s] * Gw[s]
+        Aux+=0.5*us[:,:,:,s]*Gn[kk,s]*Gw[s]
 
     if dataLabel=='geopotential':
       u_k[kk] = Aux/(const.g*hk[kk])

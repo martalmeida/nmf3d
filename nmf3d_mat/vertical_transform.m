@@ -84,9 +84,9 @@ for kk=1:nk
   Aux = 0;
   for s=1:GL
     if strcmp(dataLabel,'J3')
-      Aux=Aux-squeeze(us(:,:,:,s)) * d_Gn_dpnew(kk,s) * Gw(s);
+      Aux=Aux-0.5*squeeze(us(:,:,:,s))*d_Gn_dpnew(kk,s)*Gw(s);
     else
-      Aux=Aux+squeeze(us(:,:,:,s)) * Gn(kk,s) * Gw(s);
+      Aux=Aux+0.5*squeeze(us(:,:,:,s))*Gn(kk,s)*Gw(s);
     end
 
     if strcmp(dataLabel,'geopotential')
