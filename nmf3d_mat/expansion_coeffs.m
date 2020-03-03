@@ -32,7 +32,7 @@ fprintf(1,'- Expansion coefficients -\n')
 fprintf(1,' - loading parameters from Hough functions file:\n    %s\n',hfile);
 if ends_with(hfile,'.mat')
   ohfile=load(hfile);
-  [tree,nN,nmm,nk,nLat]=size(ohfile.HOUGHs_UVZ);
+  [three,nN,nmm,nk,nLat]=size(ohfile.HOUGHs_UVZ);
 else % netcdf
   % loading dimensions:
   nc=netcdf.open(hfile);

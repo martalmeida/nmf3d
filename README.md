@@ -47,7 +47,11 @@
 
 &nbsp;&nbsp;&nbsp;&nbsp;[5.2 3-D spectrum of energy interactions](#5.2-3-D-spectrum-of-energy-interactions)
 
-[6. Appendix (Matlab version)](#6.-Appendix)
+&nbsp;&nbsp;&nbsp;&nbsp;[5.2 storing the verical transform](#5.3-storing-the-vertical-transform)
+
+[6. Inverse expansion coefficients](#5.-Inverse-expansion-coefficients)
+
+[7. Appendix (Matlab version)](#6.-Appendix)
 
 ### 1. Installation
 <pre>
@@ -221,10 +225,10 @@ nmf3d.calcs.ncshow(vfileT,Lmax=50)
        out_vs_ws0True.nc
     
     :: Global Attributes:
-       date           2019-11-29 16:55:38.963091                        
+       date           2020-03-03 18:07:12.882259                        
        ws0            True                                              
        n_leg          57                                                
-       platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-cent+
+       platform       Linux-3.10.0-1062.12.1.el7.x86_64-x86_64-with-cen+
        environment    python                                            
        version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]
        version_scipy  1.3.1                                             
@@ -391,12 +395,12 @@ nmf3d.calcs.ncshow(hfileF)
        out_hvf_M6_nLR8_nLG12_NEH5_dlat6linear_ws0False.nc
     
     :: Global Attributes:
-       date           2019-11-29 16:55:42.752146                                       
-       platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-centos-7.6.1810-Core
-       environment    python                                                           
-       version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]               
-       version_scipy  1.3.1                                                            
-       version_numpy  1.17.2                                                           
+       date           2020-03-03 18:07:16.870576                                        
+       platform       Linux-3.10.0-1062.12.1.el7.x86_64-x86_64-with-centos-7.7.1908-Core
+       environment    python                                                            
+       version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]                
+       version_scipy  1.3.1                                                             
+       version_numpy  1.17.2                                                            
     
     :: Dimensions:
        components_uvz                         3
@@ -410,6 +414,7 @@ nmf3d.calcs.ncshow(hfileF)
        HOUGHs_UVZ_real | hough functions - real | (3, 7, 20, 5, 31) |
        HOUGHs_UVZ_imag | hough functions - imag | (3, 7, 20, 5, 31) |
        FREQs           | frequencies            | (7, 20, 5)        |
+       lat             | latitude               | (31,)             |
 
 
 ### 5. Expansion coefficients
@@ -542,7 +547,7 @@ data=load_ERA_I.load(fu,fv,fz,datafolder+'/PHI_raw.txt',height=False)
 
 
 ```python
-w_nlkF,fsaveF=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data,label='out_ws0_False')
+w_nlkF,wfileF=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data,label='out_ws0_False')
 ```
 
     - Expansion coefficients -
@@ -569,7 +574,7 @@ An output file was created. Let's check it:
 
 
 ```python
-nmf3d.calcs.ncshow(fsaveF)
+nmf3d.calcs.ncshow(wfileF)
 ```
 
     
@@ -577,12 +582,12 @@ nmf3d.calcs.ncshow(fsaveF)
        out_ws0_False_w_nlk.nc
     
     :: Global Attributes:
-       date           2019-11-29 16:56:32.031238                                       
-       platform       Linux-3.10.0-957.27.2.el7.x86_64-x86_64-with-centos-7.6.1810-Core
-       environment    python                                                           
-       version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]               
-       version_scipy  1.3.1                                                            
-       version_numpy  1.17.2                                                           
+       date           2020-03-03 18:08:09.709002                                        
+       platform       Linux-3.10.0-1062.12.1.el7.x86_64-x86_64-with-centos-7.7.1908-Core
+       environment    python                                                            
+       version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]                
+       version_scipy  1.3.1                                                             
+       version_numpy  1.17.2                                                            
     
     :: Dimensions:
        number_equivalent_heights   5
@@ -600,7 +605,7 @@ nmf3d.calcs.ncshow(fsaveF)
 
 
 ```python
-w_nlkT,fsaveT=nmf3d.expansion_coeffs.calc(vfileT,hfileT,data,label='out_ws0_True')
+w_nlkT,wfileT=nmf3d.expansion_coeffs.calc(vfileT,hfileT,data,label='out_ws0_True')
 ```
 
     - Expansion coefficients -
@@ -634,8 +639,8 @@ E0=np.zeros((nk,nL,nT))
 En=np.zeros((nk,nM-1,nL,nT))
 
 for i in range(nk):
-    E0[i]=1/8*1e5*hk[i]*(w_nlk[i,0]*w_nlk[i,0].conj()).real
-    En[i]=1/4*1e5*hk[i]*(w_nlk[i,1:]*np.conj(w_nlk[i,1:])).real
+    E0[i]=1/4*1e5*hk[i]*(w_nlk[i,0]*w_nlk[i,0].conj()).real
+    En[i]=1/2*1e5*hk[i]*(w_nlk[i,1:]*np.conj(w_nlk[i,1:])).real
 
 v=En.mean(3).sum(2).sum(0)
 x=range(1,v.size+1)
@@ -651,122 +656,194 @@ pl.ylabel('Energy (J m$^{-2}$)');
 #### 5.2 3-D spectrum of energy interactions
 
 In this case, the user needs to calculate I1, I2 and J3. We provide here just an example, considering these terms were previously computed and stored in the files I1.npz, I2.npz and J3.npz:
+  # assuming the coefficients were calculated and stored in the files
+  # I1.npy, I2.npy and J3.npy; and the user has the variables lon, lat and P:
+
+  data_i1=dict(lon=lon,lat=lat,P=P,v=np.load('I1.npy'))
+  data_i2=dict(lon=lon,lat=lat,P=P,v=np.load('I2.npy'))
+  data_j3=dict(lon=lon,lat=lat,P=P,v=np.load('J3.npy'))
+
+  data_i=dict(I1=data_i1,I2=data_i2)
+  i_nlk,ifsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_i,label='out_i_ws0_True')
+
+  idata_j=dict(J3=data_j3)
+  j_nlkF,jfsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_j,label='out_j_ws0_True')
+#### 5.3 storing the vertical transform
+
+The vertical transform of geopotential, zonal and meridional wind, term I1, term I2 and term J3 can be stored (as npz or netcdf)
+
+*nmf3d.transforms.vertical* is called from *nmf3d.expansion_coeffs.calc* without saving the vertical transform.
+
+In order to save the output from vertical transform *nmf3d.transforms.vertical* must be used with the required inputs arguments:
+- u, variable defined at pressure levels
+- hk, equivalent heights
+- nk, total number of equivalent heights
+- Gn, vertical structure functions
+- p_old, original pressure levels
+- p_new, Gaussian pressure levels
+- dataLabel, variable type:
+    - 'zonal wind'
+    - 'meridional wind'
+    - 'geopotential'
+    - 'I1'
+    - 'I2'
+    - 'J3'
+- and the karg save=True
+
+### 6. Inverse expansion coefficients
+
+  Inverse of Vertical, Fourier and Hough transforms.
+  
+  The zonal and meridional wind, and geopotential perturbation
+  can be reconstructed in the physical space using a chosen set of modes, with:
+  
+  *nmf3d.inv_expansion_coeffs.calc*
+  
+inputs:
+- vfile,  equivalent heights and vertical structure functions file (output file from step [3](#3.-Vertical-structure-equation))
+ 
+- hfile, Hough functions file (output file from step [4](#4.-Hough-vector-functions))
+
+- wfile,  expansion coefficients file (output file from step [5](#5.-Expansion-coefficients))
+
+
+- zi, wavenumber indices, zi=0 (Zonal mean) and zi>0 (Eddies)
+- mi, meridional indices
+- vi, vertical indices, vi=0 (Barotropic mode) and vi>0 (Baroclinic modes)
+- pl, pressure levels (hPa units)
+- lon, longitudes (deg units)
+
+- data: dict with fields (u,v,z) or (I1,I2) or (J3). Each entry must also be a dictionary, with fields lon, lat, P (pressure levels) and v (the u, v, z, I1, I2 or J3)
+ 
+The input files vfile, hfile and wfile can be netcdf or npz. The function accepts other arguments like the save karg (True by default), the format (nc or npz) and uvz (variables to compute, (1,1,1) by default) 
+
+Returns the reconstructed  zonal and meridional wind, and geopotential perturbation,
+as well as saved filename if save is true
+  
+
 
 
 ```python
-'''
-data_i1={}
-data_i2={}
-data_j3={}
+zi=[1,2,3]
+mi=[1,2,3]
+vi=[1,2]
+plev=[850,500]
+lon=np.arange(0,360,30)
 
-# assuming the coefficients were calculated and stored in the files
-# I1.npz, I2.npz and J3.npz:
-
-a=np.load('I1.npz')
-b=np.load('I2.npz')
-c=np.load('J3.npz')
-
-P=a['P']
-lon=a['lon']
-lat=a['lat']
-I1=a['I1']
-I2=b['I2']
-J3=c['J3']
-
-data_i1=dict(P=P,lon=lon,lat=lat,v=I1)
-data_i2=dict(P=P,lon=lon,lat=lat,v=I2)
-data_j3=dict(P=P,lon=lon,lat=lat,v=J3)
-
-data_i=dict(I1=data_i1,I2=data_i2}
-i_nlkF,ifsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_i,label='out_i_ws0_False')
-            
-data_j=dict(J3=data_j3)
-j_nlkF,jfsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_j,label='out_j_ws0_False')
-''';
+out,iwfileT=nmf3d.inv_expansion_coeffs.calc(vfileT,hfileT,wfileT,zi,mi,vi,plev,lon)
 ```
 
-### 6. Appendix
-##### Matlab version
+     - loading vertical structure functions:
+        out_vs_ws0True.nc
+     - loading Hough vector functions:
+        out_hvf_M6_nLR8_nLG12_NEH5_dlat6linear_ws0True.nc
+     - loading expansion coefficients:
+        out_ws0_True_w_nlk.nc
+     - computing
+    saving outinv_uvz.nc
 
-The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of input/output, the Matlab version also deals with netcdf files, as well as its native format (mat instead of npz).
 
 
 ```python
-'''
-% adjust paths: ------------------------------------------------------
-d='SOME_PATH/nmf3d/'
-addpath([d 'nmf3d_mat']);
-datafolder='nmf3d_data/';
+from mpl_toolkits.basemap import Basemap
 
-% vertical structure: ------------------------------------------------
+# to avoid some basemap warning:
+import warnings
+warnings.filterwarnings("ignore")
+
+m=Basemap(projection='cyl',resolution='c',llcrnrlon=-180,urcrnrlon=180,llcrnrlat=-90,urcrnrlat=90)
+
+
+x,y,u=out['lon'],out['lat'],out['u'][-1,-1]
+uu=np.zeros((u.shape[0],u.shape[1]+1))
+uu[:,:-1]=u
+uu[:,-1]=uu[:,0]
+x=np.hstack((x,360))
+x,y=np.meshgrid(x,y)
+x,u=m.shiftdata(x,uu)
+
+pl.pcolormesh(x,y,u)
+m.drawcoastlines()
+m.drawparallels(np.arange(-90.,91.,30.),labels=(1,0,0,0))
+m.drawmeridians(np.arange(-180.,181.,60.),labels=(0,0,0,1));
+```
+
+
+![png](doc/output_48_0.png)
+
+
+### 7. Appendix
+##### Matlab version
+
+The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of input/output, the Matlab version also deals with netcdf files, as well as and its native format (mat instead of npz).
+% ------------------------------------ adjust paths:
+addpath('../nmf3d_mat'); % change for your case
+datafolder='./nmf3d_data/';
+
+% ------------------------------------ vertical structure:
 f=[datafolder 'T_ERA_I_1979_2010.txt'];
 a=load(f);
 T=a(1,:);
 Lev=a(2,:);
-[Gn,hk,vfile]=vertical_structure(T,Lev,'ws0',0);
 
-% hough functions: ---------------------------------------------------
+[GnT,hkT,vfileT]=vertical_structure(T,Lev,'ws0',1);
+[GnF,hkF,vfileF]=vertical_structure(T,Lev,'ws0',0);
+
+% ------------------------------------ Hough functions:
 M=6;
 nLR=8;
 nLG=6;
 nk=5; % number of function to keep
 
-% ws0=1
-[Gn,hk,vfileT]=vertical_structure(T,Lev,'ws0',1);
-[hvf_dataT,hfileT]=hough_functions(hk(1:nk),M,nLR,nLG,'linear','dlat',6);
+[hvf_dataT,hfileT]=hough_functions(hkT(1:nk),M,nLR,nLG,'linear','dlat',6);
+[hvf_dataF,hfileF]=hough_functions(hkF(1:nk),M,nLR,nLG,'linear','dlat',6);
 
-% ws0=0
-[Gn,hk,vfileF]=vertical_structure(T,Lev,'ws0',0);
-[hvf_dataF,hfileF]=hough_functions(hk(1:nk),M,nLR,nLG,'linear','dlat',6);
-
-% Expansion coefficients: --------------------------------------------
+% ------------------------------------ expansion coefficients:
 % 3-D spectrum of total energy W_nlk
-fu=[datafolder 'u_01_1979_.nc4'];
-fv=[datafolder 'v_01_1979_.nc4'];
-fz=[datafolder 'z_01_1979_.nc4'];
-fzref=[datafolder 'PHI_raw.txt'];
+fu    = [datafolder 'u_01_1985_.nc4'];
+fv    = [datafolder 'v_01_1985_.nc4'];
+fz    = [datafolder 'z_01_1985_.nc4'];
+fzref = [datafolder 'PHI_raw.txt'];
+
 height=0;
 data=load_ERA_I(fu,fv,fz,fzref,height);
 
-% ws0=1
-[w_nlk,fsave]=expansion_coeffs(vfileT,hfileT,data,'label','out_ws0_True');
+[w_nlkT,wfileT]=expansion_coeffs(vfileT,hfileT,data,'label','outT');
+[w_nlkF,wfileF]=expansion_coeffs(vfileF,hfileF,data,'label','outF');
 
-% ws0=0
-[w_nlk,fsave]=expansion_coeffs(vfileF,hfileF,data,'label','out_ws0_False');
-
-
+% energy:
+w_nlk=w_nlkT;
 for i=1:nk
-    E0(i,1,:,:)=1/8*1e5*hk(i)*(w_nlk(i,1,:,:).*conj(w_nlk(i,1,:,:)));
-    En(i,:,:,:)=1/4*1e5*hk(i)*(w_nlk(i,2:end,:,:).*conj(w_nlk(i,2:end,:,:)));
+    E0(i,1,:,:)=1/4*1e5*hkT(i)*(w_nlk(i,1,:,:).*conj(w_nlk(i,1,:,:)));
+    En(i,:,:,:)=1/2*1e5*hkT(i)*(w_nlk(i,2:end,:,:).*conj(w_nlk(i,2:end,:,:)));
 end
 
-
 % 3-D spectrum of energy interactions
-data_i1=struct;
-data_i1.lon=lon;
-data_i1.lat=lat;
-data_i1.P=P;
-data_i1.v=load('I1.mat');
+if 0
+  % assuming the coefficients were calculated and stored in the files
+  % I1.mat, I2.mat and J3.mat; and the user has the variables lon, lat and P:
 
-data_i2=struct;
-data_i2.lon=lon;
-data_i2.lat=lat;
-data_i2.P=P;
-data_i2.v=load('I2.mat');
+  data_i1=struct('lon',lon,'lat',lat,'P',P,'v',load('I1.mat'));
+  data_i2=struct('lon',lon,'lat',lat,'P',P,'v',load('I2.mat'));
+  data_j3=struct('lon',lon,'lat',lat,'P',P,'v',load('J3.mat'));
 
-data_j3=struct;
-data_j3.lon=lon;
-data_j3.lat=lat;
-data_j3.P=P;
-data_j3.v=load('J3.mat');
+  data_i=struct('I1',data_i1,'I2',data_i2);
+  [i_nlk,ifsave]=expansion_coeffs(vfileT,hfileT,data_i,'label','out_i_ws0_True');
 
-data_i=struct;
-data_i.I1=data_i1;
-data_i.I2=data_i2;
-[i_nlk,ifsave]=expansion_coeffs(vfileT,hfileT,data_i,'label','out_i_ws0_True');
+  data_j=struct('J3',data_j3);
+  [j_nlk,jfsave]=expansion_coeffs(vfileT,hfileT,data_j,'label','out_j_ws0_True');
+end
 
-data_j=struct;
-data_j.J3=data_j3;
-[j_nlk,jfsave]=expansion_coeffs(vfileT,hfileT,data_j,'label','out_j_ws0_True');
-''';
-```
+% storing the vertical transform
+if 0
+  u=data.u.v;
+  [u_k,fsave]=vertical_transform(u,hk,nk,Gn,p_old,p_new,dataLabel,'meridional wind')
+end
+
+% ------------------------------------ inverse expansion coefficients:
+zi=[1,2,3];
+mi=[1,2,3];
+vi=[1,2];
+pl=[850,500];
+lon=0:30:359;
+[uvz,invfsave]=inv_expansion_coeffs(vfileT,hfileT,wfileT,zi,mi,vi,pl,lon);

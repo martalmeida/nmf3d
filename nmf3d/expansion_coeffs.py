@@ -14,7 +14,7 @@ def calc(vfile,hfile,data,**kargs):
     - zonal wind, meridional wind and geopotential perturbation (from the
       reference  geopotential), used for the the 3-D spectrum of total energy
       W_nlk
-    - I1, I2 and J3 (see vertical_transform), used for the 3-D spectrum of
+    - I1, I2 and J3 (see transforms.vertical), used for the 3-D spectrum of
       energy interactions (kinetic and available pontential energy)
 
   vfile: equivalent heights and vertical structure functions
@@ -36,7 +36,7 @@ def calc(vfile,hfile,data,**kargs):
   print (' - loading parameters from Hough functions file:\n    %s'%hfile)
   if hfile.endswith('.npz'):
     ohfile=np.load(hfile)
-    tree,nN,nmm,nk,nLat=ohfile['HOUGHs_UVZ'].shape
+    three,nN,nmm,nk,nLat=ohfile['HOUGHs_UVZ'].shape
   else: # netcdf
     # loading dimensions:
     nc=netCDF4.Dataset(hfile)

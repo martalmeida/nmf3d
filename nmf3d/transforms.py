@@ -157,7 +157,6 @@ def save_out(data,**kargs):
 
 
 def save_nc(fname,data,**attrs):
-  debug=0
   import netCDF4
   import os
   if os.path.isfile(fname):

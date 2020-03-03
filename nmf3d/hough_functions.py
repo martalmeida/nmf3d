@@ -106,7 +106,7 @@ def hvf(hk,M=42,nLR=40,nLG=20,latType='linear',**kargs):
     FREQs[1:] = FREQs_m
 
     # data to store:
-    data=dict(HOUGHs_UVZ=HOUGHs_UVZ,FREQs=FREQs)
+    data=dict(HOUGHs_UVZ=HOUGHs_UVZ,FREQs=FREQs,lat=np.arcsin(x)*180/np.pi)
 
     if save:
       fsave=save_out(data,'ws0True',params,**kargs);
@@ -126,7 +126,7 @@ def hvf(hk,M=42,nLR=40,nLG=20,latType='linear',**kargs):
     FREQs[1:] = data_b['FREQS_m']
 
     # data to store:
-    data=dict(HOUGHs_UVZ=HOUGHs_UVZ,FREQs=FREQs)
+    data=dict(HOUGHs_UVZ=HOUGHs_UVZ,FREQs=FREQs,lat=np.arcsin(x)*180/np.pi)
 
     if save:
       fsave=save_out(data,'ws0False',params,**kargs)
@@ -163,9 +163,7 @@ def save_out(data,tag,params,**kargs):
 
 
 def save_nc(fname,data,**attrs):
-  debug=0
   import netCDF4
-
   import os
   if os.path.isfile(fname):
     os.unlink(fname)
@@ -196,6 +194,10 @@ def save_nc(fname,data,**attrs):
   v=nc.createVariable(k,dType,dim)
   v.long_name='frequencies'
 
+  # latitude:
+  v=nc.createVariable('lat',dType,('lat',))
+  v.long_name='latitude'
+
   # global attributes:
   import datetime
   nc.date=datetime.datetime.now().isoformat(' ')
@@ -206,4 +208,5 @@ def save_nc(fname,data,**attrs):
   nc.variables['HOUGHs_UVZ_real'][:]=data['HOUGHs_UVZ'].real
   nc.variables['HOUGHs_UVZ_imag'][:]=data['HOUGHs_UVZ'].imag
   nc.variables['FREQs'][:]=data['FREQs']
+  nc.variables['lat'][:]=data['lat']
   nc.close()

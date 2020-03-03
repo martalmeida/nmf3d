@@ -98,7 +98,7 @@ disp('Part II');
 
 % Dimensions --------------------
 % Arrays for the Hough functions
-HOUGH_UVZ = zeros(3,M,L,length(x)); % (comlex) Hough functions for m>0
+HOUGH_UVZ = zeros(3,M,L,length(x)); % (complex) Hough functions for m>0
 
 
 for m=1:M  % Start the zonal wave numbers

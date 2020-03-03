@@ -2,6 +2,7 @@ from . import calcs
 from . import vertical_structure
 from . import hough_functions
 from . import expansion_coeffs
+from . import inv_expansion_coeffs
 from .version import __version__
 
 def __folders():
@@ -9,7 +10,8 @@ def __folders():
   here=__path__[0]
   return os.path.join(here,'data'),os.path.join(here,'doc')
 
-datafolder,docfolder=__folders()
+#datafolder,docfolder=__folders()
+docfolder=__folders()[-1]
 
 def doc():
   url='https://github.com/martalmeida/nmf3d'

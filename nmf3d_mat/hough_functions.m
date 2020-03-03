@@ -125,6 +125,7 @@ if isinf(hk(1)) % ws0 True
   data=struct;
   data.HOUGHs_UVZ = HOUGHs_UVZ;
   data.FREQs      = FREQs;
+  data.lat = asin(x)*180/pi;
 
   if save
     fsave=save_out(data,'ws0True',params,varargin{:});
@@ -149,6 +150,7 @@ else
   data=struct;
   data.HOUGHs_UVZ = HOUGHs_UVZ;
   data.FREQs      = FREQs;
+  data.lat = asin(x)*180/pi;
 
   if save
     fsave=save_out(data,'ws0False',params,varargin{:});
@@ -225,6 +227,10 @@ function save_nc(fname,data,attrs)
   var_f=netcdf.defVar(nc,k,'NC_DOUBLE',dim);
   netcdf.putAtt(nc,var_f,'long_name','frequencies');
 
+  % lat:
+  var_lat=netcdf.defVar(nc,'lat','NC_DOUBLE',dim_lat);
+  netcdf.putAtt(nc,var_lat,'long_name','latitude');
+
   % global attributes:
   vid = netcdf.getConstant('GLOBAL');
   netcdf.putAtt(nc,vid,'date',datestr(now));
@@ -236,8 +242,9 @@ function save_nc(fname,data,attrs)
   netcdf.endDef(nc);
 
   % fill variables:
-  netcdf.putVar(nc,var_hr, permute(real(data.HOUGHs_UVZ),  ndims(data.HOUGHs_UVZ) :-1:1) );
-  netcdf.putVar(nc,var_hi, permute(imag(data.HOUGHs_UVZ),  ndims(data.HOUGHs_UVZ) :-1:1) );
-  netcdf.putVar(nc,var_f,  permute(data.FREQs,             ndims(data.FREQs)      :-1:1) );
+  netcdf.putVar(nc,var_hr,  permute(real(data.HOUGHs_UVZ),  ndims(data.HOUGHs_UVZ) :-1:1) );
+  netcdf.putVar(nc,var_hi,  permute(imag(data.HOUGHs_UVZ),  ndims(data.HOUGHs_UVZ) :-1:1) );
+  netcdf.putVar(nc,var_f,   permute(data.FREQs,             ndims(data.FREQs)      :-1:1) );
+  netcdf.putVar(nc,var_lat, permute(data.lat,               ndims(data.lat)        :-1:1) );
   netcdf.close(nc);
 end
