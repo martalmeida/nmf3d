@@ -225,7 +225,7 @@ nmf3d.calcs.ncshow(vfileT,Lmax=50)
        out_vs_ws0True.nc
     
     :: Global Attributes:
-       date           2020-03-03 18:07:12.882259                        
+       date           2020-03-03 23:29:00.116931                        
        ws0            True                                              
        n_leg          57                                                
        platform       Linux-3.10.0-1062.12.1.el7.x86_64-x86_64-with-cen+
@@ -395,7 +395,7 @@ nmf3d.calcs.ncshow(hfileF)
        out_hvf_M6_nLR8_nLG12_NEH5_dlat6linear_ws0False.nc
     
     :: Global Attributes:
-       date           2020-03-03 18:07:16.870576                                        
+       date           2020-03-03 23:29:04.164331                                        
        platform       Linux-3.10.0-1062.12.1.el7.x86_64-x86_64-with-centos-7.7.1908-Core
        environment    python                                                            
        version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]                
@@ -582,7 +582,7 @@ nmf3d.calcs.ncshow(wfileF)
        out_ws0_False_w_nlk.nc
     
     :: Global Attributes:
-       date           2020-03-03 18:08:09.709002                                        
+       date           2020-03-03 23:29:55.497271                                        
        platform       Linux-3.10.0-1062.12.1.el7.x86_64-x86_64-with-centos-7.7.1908-Core
        environment    python                                                            
        version        3.7.5 (default, Oct 25 2019, 15:51:11) [GCC 7.3.0]                
@@ -655,10 +655,11 @@ pl.ylabel('Energy (J m$^{-2}$)');
 
 #### 5.2 3-D spectrum of energy interactions
 
-In this case, the user needs to calculate I1, I2 and J3. We provide here just an example, considering these terms were previously computed and stored in the files I1.npz, I2.npz and J3.npz:
-  # assuming the coefficients were calculated and stored in the files
-  # I1.npy, I2.npy and J3.npy; and the user has the variables lon, lat and P:
+In this case, the user needs to calculate I1, I2 and J3. We provide here just an example, considering these terms were previously computed and stored in the files I1.npy, I2.npy and J3.npy, and the user has the variables lon, lat and P:
 
+
+```python
+if 0:
   data_i1=dict(lon=lon,lat=lat,P=P,v=np.load('I1.npy'))
   data_i2=dict(lon=lon,lat=lat,P=P,v=np.load('I2.npy'))
   data_j3=dict(lon=lon,lat=lat,P=P,v=np.load('J3.npy'))
@@ -668,6 +669,8 @@ In this case, the user needs to calculate I1, I2 and J3. We provide here just an
 
   idata_j=dict(J3=data_j3)
   j_nlkF,jfsave=nmf3d.expansion_coeffs.calc(vfileF,hfileF,data_j,label='out_j_ws0_True')
+```
+
 #### 5.3 storing the vertical transform
 
 The vertical transform of geopotential, zonal and meridional wind, term I1, term I2 and term J3 can be stored (as npz or netcdf)
@@ -776,6 +779,10 @@ m.drawmeridians(np.arange(-180.,181.,60.),labels=(0,0,0,1));
 ##### Matlab version
 
 The same results of the previous Python tutorial can be obtained with the Matlab version of code like. In terms of input/output, the Matlab version also deals with netcdf files, as well as and its native format (mat instead of npz).
+
+
+```python
+'''
 % ------------------------------------ adjust paths:
 addpath('../nmf3d_mat'); % change for your case
 datafolder='./nmf3d_data/';
@@ -847,3 +854,5 @@ vi=[1,2];
 pl=[850,500];
 lon=0:30:359;
 [uvz,invfsave]=inv_expansion_coeffs(vfileT,hfileT,wfileT,zi,mi,vi,pl,lon);
+''';
+```
