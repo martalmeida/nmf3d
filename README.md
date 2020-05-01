@@ -8,28 +8,36 @@
  - for the Python version, Numpy and Scipy are required; netCDF4 is recommended
 
 ##### References:
-- A. Kasahara (1976). Normal modes of ultralong waves in the atmosphere, Mon. Weather Rev., 104(6), 669-690.
-<br><a href='https://doi.org/10.1175/1520-0493(1976)104%3C0669:NMOUWI%3E2.0.CO;2'          target="_blank">http://dx.doi/10.1175/1520-0493(1976)104&lt;0669:NMOUWI&gt;2.0.CO;2</a>
+- Kasahara, A. (1976). Normal modes of ultralong waves in the atmosphere, Mon. Weather Rev., 104(6), 669-690.
+<br><a href='https://doi.org/10.1175/1520-0493(1976)104%3C0669:NMOUWI%3E2.0.CO;2' target="_blank">https://doi.org/10.1175/1520-0493(1976)104&lt;0669:NMOUWI&gt;2.0.CO;2</a>
 
 
-- A. Kasahara (1978). Further Studies on a Spectral Model of the Global Barotropic Primitive Equations with Hough Harmonic Expansions, J. Atmos. Sci., 35(11), 2043-2051.
+- Kasahara, A. (1978). Further Studies on a Spectral Model of the Global Barotropic Primitive Equations with Hough Harmonic Expansions, J. Atmos. Sci., 35(11), 2043-2051.
 <br><a href='https://doi.org/10.1175/1520-0469(1978)035%3C2043:FSOASM%3E2.0.CO;2' target='_blank'>https://doi.org/10.1175/1520-0469(1978)035&lt;2043:FSOASM&gt;2.0.CO;2</a>
     
 
-- Y. Shigehisa (1983). Normal Modes of the Shallow Water Equations for Zonal Wavenumber Zero, J. Meteorol. Soc. Jpn., 61(4), 479-493.
-<br>https://dx.doi/10.2151/jmsj1965.61.4_479
+- Shigehisa, Y. (1983). Normal Modes of the Shallow Water Equations for Zonal Wavenumber Zero, J. Meteorol. Soc. Jpn., 61(4), 479-493.
+<br><a href='https://doi.org/10.2151/jmsj1965.61.4_479' target='_blank'>https://doi.org/10.2151/jmsj1965.61.4_479</a>
 
 
-- A. Kasahara (1984). The Linear Response of a Stratified Global Atmosphere to Tropical Thermal Forcing, J. Atmos. Sci., 41(14). 2217--2237.
-<br><a href='https://doi.org/10.1175/1520-0469(1984)041%3C2217:TLROAS%3E2.0.CO;2' target='_blank'>https://dx.doi/10.1175/1520-0469(1984)041&lt;2217:TLROAS&gt;2.0.CO;2</a>
+- Kasahara, A. (1984). The Linear Response of a Stratified Global Atmosphere to Tropical Thermal Forcing, J. Atmos. Sci., 41(14). 2217--2237.
+<br><a href='https://doi.org/10.1175/1520-0469(1984)041%3C2217:TLROAS%3E2.0.CO;2' target='_blank'>https://doi.org/10.1175/1520-0469(1984)041&lt;2217:TLROAS&gt;2.0.CO;2</a>
 
 
-- P. N. Swarztrauber and A. Kasahara (1985). The vector harmonic analysis of Laplace's tidal equations, SIAM J. Sci. Stat. Comput, 6(2), 464-491.
-<br>https://doi.org/10.1137/0906033
+- Swarztrauber, P. M. and Kasahara, A. (1985). The vector harmonic analysis of Laplace's tidal equations, SIAM J. Sci. Stat. Comput., 6(2), 464-491.
+<br><a href='https://doi.org/10.1137/0906033' target='_blank'>https://doi.org/10.1137/0906033</a>
+
+
+- Tanaka, H. L. (1985). Global energetics analysis by expansion into three-dimensional normal-mode functions during the FGGE winter, J. Meteorol. Soc. Jpn., 63(2), 180–200.
+<br><a href='https://doi.org/10.2151/jmsj1965.63.2_180' target='_blank'>https://doi.org/10.2151/jmsj1965.63.2_180</a>
+
+
+- Tanaka, H. L. and Kung, E. C. (1988). Normal-mode energetics of the general circulation during the FGGE year, J. Atmos. Sci., 45(2), 3723–3736.
+<br><a href='https://doi.org/10.1175/1520-0469(1988)045<3723:nmeotg>2.0.co;2' target='_blank'>https://doi.org/10.1175/1520-0469(1988)045&lt;3723:nmeotg&gtM2.0.co;2</a>
 
 
 - Castanheira, JM, Marques, CAF (2019). The energy cascade associated with daily variability of the North Atlantic Oscillation, Q J R Meteorol Soc., 145: 197-210.
-<br>https://doi.org/10.1002/qj.3422
+<br><a href='https://doi.org/10.1002/qj.3422' target='_blank'>https://doi.org/10.1002/qj.3422</a>
 
 ### Contents
 
