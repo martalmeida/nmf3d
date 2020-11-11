@@ -46,7 +46,7 @@ def hvf(hk,M,nLR,nLG,latType,dlat):
     #x   = np.sin(LAT*np.pi/180.)
     x   = calcs.sind(LAT)
   elif latType=='gaussian':
-    x,w=np.polynomial.legendre.leggauss(N)
+    x,w=np.polynomial.legendre.leggauss(dlat)
 
 
   print('Part I')

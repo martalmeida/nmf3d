@@ -37,7 +37,7 @@ if isequal(latType,'linear')
   %x   = sin(LAT*pi/180.);
   x   = sind(LAT);
 elseif isequal(latType,'gaussian')
-  [x,w] = lgwt(N,-1,1);
+  [x,w] = lgwt(dlat,-1,1);
 end
 
 disp('Part I');
