@@ -33,14 +33,16 @@ for k=1:nk % vertical index
   for n=1:nM % wavenumber index
     for l=1:nL % meridional index
       for t=1:nTimes % time index
-        Aux=squeeze(var_nk(:,k,:,n,t)).*squeeze(conj(HOUGHs_UVZ(:,n,l,k,:))).*cosTheta; % Aux(3,Lat)
-        y1=sum(Aux); % Integrand -> y1(Lat)
-
         if isequal(latType,'linear')
+          Aux=squeeze(var_nk(:,k,:,n,t)).*squeeze(conj(HOUGHs_UVZ(:,n,l,k,:))).*cosTheta; % Aux(3,Lat)
+          y1=sum(Aux); % Integrand -> y1(Lat)
           % Computes latitude integral of the Integrand using trapezoidal method
           aux1=(y1(1:end-1)+y1(2:end))*Dl/2.; % len Lat.size-1; complex
         elseif isequal(latType,'gaussian')
-          aux1=gw*y1;
+          Aux=squeeze(var_nk(:,k,:,n,t)).*squeeze(conj(HOUGHs_UVZ(:,n,l,k,:))); % Aux(3,Lat)
+          y1=sum(Aux); % Integrand -> y1(Lat)
+          % Computes latitude integral of the Integrand using gaussian quadrature
+          aux1=gw.*y1.';
         end
 
         var_nlk(k,n,l,t) = sum(aux1);

@@ -241,14 +241,15 @@ def hough(HOUGHs_UVZ,W_nk,Lat,ws0):
     for n in range(nM): # wavenumber index
       for l in range(nL): # meridional index
         for t in range(nTimes): # time index
-          Aux = W_nk[:,k,:,n,t]*np.conjugate(HOUGHs_UVZ[:,n,l,k,:])*cosTheta   # Aux(3,Lat)
-          y1=Aux.sum(0) # Integrand -> y1(Lat)
-
           if latType=='linear':
+            Aux = W_nk[:,k,:,n,t]*np.conjugate(HOUGHs_UVZ[:,n,l,k,:])*cosTheta # Aux(3,Lat)
+            y1=Aux.sum(0) # Integrand -> y1(Lat)
             # Computes latitude integral of the Integrand using trapezoidal method
             aux1=(y1[:-1]+y1[1:])*Dl/2. # len Lat.size-1; complex
-
           elif latType=='gaussian':
+            Aux = W_nk[:,k,:,n,t]*np.conjugate(HOUGHs_UVZ[:,n,l,k,:]) # Aux(3,Lat)
+            y1=Aux.sum(0) # Integrand -> y1(Lat)
+            # Computes latitude integral of the Integrand using gaussian quadrature
             aux1=gw*y1
 
           w_nlk[k,n,l,t] = aux1.sum()

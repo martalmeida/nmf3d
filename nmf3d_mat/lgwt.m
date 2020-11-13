@@ -11,6 +11,9 @@ function [x,w]=lgwt(N,a,b)
 % the definite integral using sum(f.*w);
 %
 % Written by Greg von Winckel - 02/25/2004
+%
+% changed, nov-2020, to return increasing x
+
 N=N-1;
 N1=N+1; N2=N+2;
 
@@ -53,6 +56,10 @@ end
 
 % Linear map from[-1,1] to [a,b]
 x=(a*(1-y)+b*(1+y))/2;      
+
+% changed nov 2020:
+% note that w is always symmetric, no need to change
+x=x(end:-1:1);
 
 % Compute the weights
 w=(b-a)./((1-y.^2).*Lp.^2)*(N2/N1)^2;
