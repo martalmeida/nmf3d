@@ -38,6 +38,7 @@ if isequal(latType,'linear')
   x   = sind(LAT);
 elseif isequal(latType,'gaussian')
   [x,w] = lgwt(dlat,-1,1);
+  x=x(end:-1:1);
 end
 
 disp('Part I');
